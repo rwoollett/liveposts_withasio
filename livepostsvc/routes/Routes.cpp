@@ -543,15 +543,15 @@ namespace Routes
     void homePage(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
       json root;
-      root["title"] = "TTT Service";
-      root["description"] = "The TTT service is a user game for  a UI interaction "
+      root["title"] = "LivePost Service";
+      root["description"] = "The Live Post UI interaction "
                             "to test the stack of NetProc.";
       root["navCards"] = json::array();
       root["popularCards"] = json::array();
 
       json card;
       card["title"] = "Laboratory Collection";
-      card["catchPhrase"] = "Laboratory Collection";
+      card["catchPhrase"] = "Time complexity of algorithm is how fast it perform the algorithm. Fast solutions are O(n), slow solutions are O(n2) or greater.";
 
       root["navCards"].push_back(card);
       root["popularCards"].push_back(card);
@@ -581,6 +581,9 @@ namespace Routes
       root.push_back(user);
       user["id"] = "300";
       user["name"] = "Natalie Emard";
+      root.push_back(user);
+      user["id"] = "temp@hello.co.nz";
+      user["name"] = "User at Hello.co.nz";
       root.push_back(user);
 
       std::string result;

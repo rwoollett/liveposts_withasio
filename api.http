@@ -3,9 +3,9 @@ PUT http://localhost:3011/api/v1/posts HTTP/1.1
 Content-Type: application/json
 
 {  
+  "user": "temp@hello.co.nz",
   "title": "Some tough spiders are thought of simply as figs",
-  "content": "Their bird was, in this moment, a silly bear. They were lost without the amicable kiwi that composed their fox. A peach is an amicable crocodile. A tidy fox without sharks is truly a scorpion of willing cats. Shouting with happiness, a currant is a wise currant!",
-  "user": "400"
+  "content": "Their bird was, in this moment, a silly bear. They were lost without the amicable kiwi that composed their fox. A peach is an amicable crocodile. A tidy fox without sharks is truly a scorpion of willing cats. Shouting with happiness, a currant is a wise currant!"
 }
 
 ###
