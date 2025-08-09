@@ -211,8 +211,8 @@ namespace Routes
                    "FROM \"Post\" "
                    ";";
 
-      std::cout << "FetchPost query\n"
-                << query << std::endl;
+      D(std::cout << "FetchPost query\n"
+                << query << std::endl;)
 
       auto paramStrings = std::make_shared<std::vector<std::string>>();
       auto paramLengths = std::make_shared<std::vector<int>>();
@@ -272,13 +272,13 @@ namespace Routes
         }
         int rows = PQntuples(res);
         int cols = PQnfields(res);
-        for (int i = 0; i < cols; i++)
-        {
-          Oid typeOid = PQftype(res, i); // Get the data type OID of the column
-          printf("Column %d has data type OID: %u\n", i, typeOid);
-          const char *field_name = PQfname(res, i);
-          std::cout << "Column " << i << " name: " << field_name << std::endl;
-        }
+        // for (int i = 0; i < cols; i++)
+        // {
+        //   Oid typeOid = PQftype(res, i); // Get the data type OID of the column
+        //   printf("Column %d has data type OID: %u\n", i, typeOid);
+        //   const char *field_name = PQfname(res, i);
+        //   std::cout << "Column " << i << " name: " << field_name << std::endl;
+        // }
 
         if (rows == 0)
         {
@@ -294,8 +294,6 @@ namespace Routes
           for (int row = 0; row < rows; row++)
           {
             LivePostsModel::Post post = LivePostsModel::PG::Post::fromPGRes(res, cols, row);
-          //  json jsonPost = post;
-           // jsonPost["id"] = PQgetvalue(res, row, 0);
             root["fetchPosts"].push_back(post);
           }
         } 
@@ -308,7 +306,7 @@ namespace Routes
           return send(std::move(Rest::Response::server_error(req, e)));
         }
         apiResult->assign(root.dump());
-        std::cout << "=====> Fetch Posts query found: " << root.dump() << std::endl;
+        //std::cout << "=====> Fetch Posts query found: " << root.dump() << std::endl;
 
         dbclient->asyncQuery("COMMIT", endTransaction);
       };
