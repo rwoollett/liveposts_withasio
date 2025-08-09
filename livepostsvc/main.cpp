@@ -130,10 +130,10 @@ int main(int argc, char *argv[])
     restserver->get("/health", Routes::LivePosts::healthCheck);
     restserver->get("/api/v1/homepage", Routes::LivePosts::homePage);
     restserver->get("/api/v1/users", Routes::LivePosts::userList);
-    restserver->get("/api/v1/posts", Routes::LivePosts::posts);
+    restserver->get("/api/v1/posts2", Routes::LivePosts::posts);
 
     restserver->put("/api/v1/posts", Routes::LivePosts::createPost);
-    // restserver->get("/api/v1/posts", Routes::LivePosts::getPosts);
+    restserver->get("/api/v1/posts", Routes::LivePosts::fetchPosts);
 
     // restserver->remove("/api/v1/game/complete/{gameId}", Routes::LivePosts::deleteGame);
     // restserver->put("/api/v1/game/start", Routes::LivePosts::startGame);
