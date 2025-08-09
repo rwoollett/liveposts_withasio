@@ -1,0 +1,216 @@
+
+services:
+  auth:
+    container_name: auth
+    image:  auth:v1.0
+    env_file: .env
+    ports:
+      - 3001:3001
+    environment:
+      PORT: ${AUTH_PORT}
+      MONGO_URI: ${AUTH_MONGO_URI}
+      DOCTYPE: ${AUTH_DOCTYPE}
+      JWT_KEY: ${AUTH_JWT_KEY}
+      AWS_ACCESS_KEY_ID: ${AUTH_AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AUTH_AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${AUTH_AWS_DEFAULT_REGION}
+      WHITELIST_CORS: ${AUTH_WHITELIST_CORS}
+
+  cstokensvc:
+    container_name: cstokensvc
+    image: cstokensvc:v1.0
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: '3003'      
+      CSTOKENDB_NAME: ${CSTOKEN_DATABASE_NAME}
+      CSTOKENDB_USER: ${CSTOKEN_DATABASE_USERNAME}
+      CSTOKENDB_PASSWORD: ${CSTOKEN_DATABASE_PASSWORD}
+      CSTOKENDB_HOST: ${CSTOKEN_DATABASE_HOST}
+      CSTOKENDB_PORT: ${CSTOKEN_DATABASE_PORT}
+      REDIS_HOST: ${CSTOKEN_REDIS_HOST}
+      REDIS_PORT: ${CSTOKEN_REDIS_PORT}
+      REDIS_PASSWORD: ${CSTOKEN_REDIS_PASSWORD}
+      REDIS_CHANNEL: ${CSTOKEN_REDIS_CHANNEL}
+    ports:
+      - '3003:3003'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+      start_period: 5s
+    networks:
+      - netproc-network
+    depends_on:
+      cstokenDB:
+        condition: service_started
+      cache:
+        condition: service_healthy
+
+  netproc7010:
+    container_name: netproc7010
+    image: netprocessor:v1.0
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_PORT: '7010'
+      TTT_HOST: 'ttt' 
+      TTT_PORT: '3009' 
+      CS_HOST: 'cstokensvc'
+      CS_PORT: '3003' 
+      RANGE_FROM: '7000' 
+      RANGE_TO: '7050' 
+      REDIS_HOST: ${CSTOKEN_REDIS_HOST}
+      REDIS_PORT: ${CSTOKEN_REDIS_PORT}
+      REDIS_PASSWORD: ${CSTOKEN_REDIS_PASSWORD}
+      REDIS_CHANNEL: ${NETPROC_REDIS_CHANNEL}
+    ports:
+      - '7010:7010'
+    healthcheck:
+      test: ["CMD", "sh", "-c", "/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+      start_period: 5s
+    networks:
+      - netproc-network
+    volumes:
+      - ./nmtoken_runner/7010:/netproc_runner
+    depends_on:
+      cstokensvc:
+        condition: service_healthy
+      cstokenDB:
+        condition: service_started
+      cache:
+        condition: service_healthy
+
+  netproc7020:
+    container_name: netproc7020
+    image: netprocessor:v1.0
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_PORT: '7020'
+      TTT_HOST: 'ttt' 
+      TTT_PORT: '3009' 
+      CS_HOST: 'cstokensvc'
+      CS_PORT: '3003' 
+      RANGE_FROM: '7000' 
+      RANGE_TO: '7050' 
+      REDIS_HOST: ${CSTOKEN_REDIS_HOST}
+      REDIS_PORT: ${CSTOKEN_REDIS_PORT}
+      REDIS_PASSWORD: ${CSTOKEN_REDIS_PASSWORD}
+      REDIS_CHANNEL: ${NETPROC_REDIS_CHANNEL}
+    ports:
+      - '7020:7020'
+    networks:
+      - netproc-network
+    volumes:
+      - ./nmtoken_runner/7020:/netproc_runner
+    depends_on:
+      netproc7010:
+        condition: service_healthy
+      cstokensvc:
+        condition: service_healthy
+      cstokenDB:
+        condition: service_started
+      cache:
+        condition: service_healthy
+      
+  cstokenDB:
+    container_name: cstokenDB
+    #platform: linux/amd64 #for platform error on Apple M1 chips
+    restart: unless-stopped
+    env_file: .env
+    image: postgres:13.6
+    environment:
+      POSTGRES_USER: ${CSTOKEN_DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${CSTOKEN_DATABASE_PASSWORD}
+      POSTGRES_DB: ${CSTOKEN_DATABASE_NAME}
+    volumes:
+      - cstoken-data:/var/lib/postgresql/data/ #using a volume
+    ports:
+      - '5435:5432'
+    networks:
+      - netproc-network
+
+  ttt:
+    container_name: ttt
+    image: tttsvc:v1.0
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: '3009'      
+      APIDB_NAME: ${TTT_DATABASE_NAME}
+      APIDB_USER: ${TTT_DATABASE_USERNAME}
+      APIDB_PASSWORD: ${TTT_DATABASE_PASSWORD}
+      APIDB_HOST: ${TTT_DATABASE_HOST}
+      APIDB_PORT: ${TTT_DATABASE_PORT}
+      REDIS_HOST: ${TTT_REDIS_HOST}
+      REDIS_PORT: ${TTT_REDIS_PORT}
+      REDIS_PASSWORD: ${TTT_REDIS_PASSWORD}
+      REDIS_CHANNEL: ${TTT_REDIS_CHANNEL}
+      SET_COOKIE: ${TTT_SET_COOKIE}
+    ports:
+      - '3009:3009'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3009/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+      start_period: 5s
+    networks:
+      - netproc-network
+    volumes:
+      - .:/usr/src
+    depends_on:
+      tttDB:
+        condition: service_started
+      cache:
+        condition: service_healthy
+
+  tttDB:
+    container_name: tttDB
+    restart: unless-stopped
+    env_file: .env
+    image: postgres:13.6
+    environment:
+      POSTGRES_USER: ${TTT_DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${TTT_DATABASE_PASSWORD}
+      POSTGRES_DB: ${TTT_DATABASE_NAME}
+    volumes:
+      - ttt-data:/var/lib/postgresql/data/ #using a volume
+
+    ports:
+      - '5438:5432'
+    networks:
+      - netproc-network
+
+  cache:
+    container_name: cache
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${CSTOKEN_REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+      start_period: 5s
+    volumes: 
+      - cache:/data
+    networks:
+      - netproc-network
+
+volumes:
+  cstoken-data:
+  cache:
+  ttt-data:
+
+networks:
+  netproc-network:
+    name: NetProc
+    driver: bridge

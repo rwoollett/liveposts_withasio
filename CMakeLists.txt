@@ -1,0 +1,93 @@
+cmake_minimum_required(VERSION 3.16)
+project(
+  TTTService VERSION 1.0
+  DESCRIPTION "Http/Rest Service for TicTacToe game."
+  LANGUAGES CXX C
+)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_definitions(HAVE_ASIO)
+endif()
+
+# set everything up for c++ 20 features
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_DEBUG_LIBS OFF)
+set(Boost_USE_RELEASE_LIBS ON)
+#set(Boost_USE_MULTITHREADED ON) 
+#set(Boost_USE_STATIC_RUNTIME ON)
+#set(Boost_NO_BOOST_CMAKE ON)
+set(BOOST_ROOT /usr/local)
+find_package(Boost 1.86 REQUIRED COMPONENTS program_options url)
+find_package(Threads)
+find_package(OpenMP REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBPQ REQUIRED libpq)
+
+if(LIBPQ_FOUND)
+  message("-- libpq found via pkg-config")
+  message("-- Include dirs: ${LIBPQ_INCLUDE_DIRS}")
+  message("-- Libraries: ${LIBPQ_LIBRARIES}")
+  message("-- CFLAGS: ${LIBPQ_CFLAGS_OTHER}")
+  add_compile_definitions(LIBPQ_FOUND)
+else()
+  message(FATAL_ERROR "libpq not found via pkg-config")
+endif()
+
+if(Boost_FOUND)
+  message("-- Boost 1.86 found, using ${Boost_INCLUDE_DIR}")
+endif()
+
+include(FetchContent)
+
+FetchContent_Declare(
+  nlohmann_json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG v3.11.3
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
+# Change 1) TTTModel gamestart pQfname no row game id PlayerMove json out id
+# Change 2) isOpponentStart board in PlayerMoveEvent release GameUpdate 
+# Change 3) namespace TTTModel and TTTEvents timestamp
+FetchContent_Declare(
+  TTTModel
+  GIT_REPOSITORY https://github.com/rwoollett/tttmodel.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(tttmodel)
+# Cookies
+FetchContent_Declare(
+  Cookies
+  GIT_REPOSITORY https://github.com/rwoollett/cookieParse.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(cookies)
+
+message(${cookies_SOURCE_DIR})
+
+target_link_libraries(TTTModel PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
+target_include_directories(TTTModel PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
+
+add_subdirectory(apiserver)
+target_link_libraries(APIServer PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
+
+add_subdirectory(redisSubscribe)
+
+add_subdirectory(redisPublish)
+
+add_subdirectory(tttsvc)
+
+option(BUILD_TESTS "Build tests" ON)
+
+if(BUILD_TESTS)
+  add_subdirectory(cpputest)
+endif()
+
+if(NOT BUILD_TESTS)
+  include(GNUInstallDirs)
+  install(TARGETS TicTacToeSvc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()

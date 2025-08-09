@@ -1,0 +1,116 @@
+personalmodule.project
+test-suite.log
+testpersonal
+testpersonal.*
+moduledata.bin
+modulesavedata.bin
+build-release
+build
+build-dev
+.vscode
+/.kdev4
+*.kdev4
+RestServer
+TestRest
+Load
+TestRest.log
+TestRest.trs
+test.db
+latest
+CoPilotCitations.md
+boost_1_86_0.tar.gz
+reflex_linux_amd64.tar.gz
+.env
+set_env.sh
+set_tp430env.sh
+nmtoken_runner
+
+# http://www.gnu.org/software/automake
+
+Makefile
+Makefile.in
+
+# http://www.gnu.org/software/autoconf
+
+/libtool
+/autom4te.cache
+/autoscan.log
+/autoscan-*.log
+/aclocal.m4
+/compile
+/config.h.in
+/config.h
+/config.log
+/config.status
+/configure
+/configure.scan
+/depcomp
+/install-sh
+/missing
+/stamp-h1
+
+# Dependencies
+/.deps
+/.dirstamp
+
+# Cove coverage
+/coverage.info
+/coveragereport
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+/.settings/
+/.autotools
+/.cproject
+/.project
+/config.h.in~
+/moduleviewsizedata.bin
+/config.guess
+/config.sub
+/ltmain.sh
+/test-driver
+/PersonalModule/
+/StorageModule/
+/html/
+/nbproject/
+/doxygen_sqlite3.db
+/PersonalModule/
+/PersonalModule/
+/listbook
+/PersonalModule/
+/StorageModule/
+/PersonalModule/
+/StorageModule/
+/repositorymodule/
+/RepositoryModule/
+/cmake-build-release/CMakeFiles/
+/cmake-build-release/
+scratch.txt
