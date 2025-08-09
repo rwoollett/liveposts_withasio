@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(
-  TTTService VERSION 1.0
-  DESCRIPTION "Http/Rest Service for TicTacToe game."
+  LivePostService VERSION 1.0
+  DESCRIPTION "Http/Rest Service for Live Posts."
   LANGUAGES CXX C
 )
 
@@ -50,15 +50,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Change 1) TTTModel gamestart pQfname no row game id PlayerMove json out id
-# Change 2) isOpponentStart board in PlayerMoveEvent release GameUpdate 
-# Change 3) namespace TTTModel and TTTEvents timestamp
+# Change 1) LivePostsModel post, tpDate
 FetchContent_Declare(
-  TTTModel
-  GIT_REPOSITORY https://github.com/rwoollett/tttmodel.git
+  LivePostsModel
+  GIT_REPOSITORY https://github.com/rwoollett/livepostmodel.git
   GIT_TAG master
 )
-FetchContent_MakeAvailable(tttmodel)
+FetchContent_MakeAvailable(livepostsmodel)
 # Cookies
 FetchContent_Declare(
   Cookies
@@ -69,8 +67,8 @@ FetchContent_MakeAvailable(cookies)
 
 message(${cookies_SOURCE_DIR})
 
-target_link_libraries(TTTModel PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
-target_include_directories(TTTModel PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
+target_link_libraries(LivePostsModel PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
+target_include_directories(LivePostsModel PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
 
 add_subdirectory(apiserver)
 target_link_libraries(APIServer PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
@@ -79,7 +77,7 @@ add_subdirectory(redisSubscribe)
 
 add_subdirectory(redisPublish)
 
-add_subdirectory(tttsvc)
+add_subdirectory(livepostsvc)
 
 option(BUILD_TESTS "Build tests" ON)
 
@@ -89,5 +87,5 @@ endif()
 
 if(NOT BUILD_TESTS)
   include(GNUInstallDirs)
-  install(TARGETS TicTacToeSvc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+  install(TARGETS LivePostSvc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()

@@ -1,12 +1,12 @@
 # The new base image to contain runtime dependencies
 # Dependencies: Boost >= 1.86
 
-FROM debian:12.11 AS tttsvc_base
+FROM debian:12.11 AS livepostsvc_base
 
 RUN apt update -y;  
 RUN apt install -y build-essential cmake curl git openssl libssl-dev zlib1g-dev libpq-dev python3 python3-pybind11 python3-dev pkg-config;
 
-FROM tttsvc_base AS tttsvc_boost
+FROM livepostsvc_base AS livepostsvc_boost
 
 WORKDIR /usr/src
 
@@ -22,7 +22,7 @@ RUN BOOST_VERSION=1.86.0; \
     cd ..; \
     rm -rf ${BOOST_DIR} ${BOOST_DIR}.tar.gz
 
-FROM tttsvc_boost AS tttsvc_builder
+FROM livepostsvc_boost AS livepostsvc_builder
 
 COPY . /usr/src
 
@@ -30,16 +30,16 @@ COPY . /usr/src
 RUN mkdir -p build; \
     cd build; \
     cmake .. -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-fopenmp"; \
-    cd ..; cmake --build build --target TicTacToeSvc; \
+    cd ..; cmake --build build --target LivePostSvc; \
     cd build; make install
 
-RUN strip /usr/local/bin/TicTacToeSvc
+RUN strip /usr/local/bin/LivePostSvc
 
-FROM tttsvc_base AS tttsvc_runtime
+FROM livepostsvc_base AS livepostsvc_runtime
 
-COPY --from=tttsvc_builder /usr/local/bin /usr/local/bin
-COPY --from=tttsvc_builder /usr/local/lib /usr/local/lib
+COPY --from=livepostsvc_builder /usr/local/bin /usr/local/bin
+COPY --from=livepostsvc_builder /usr/local/lib /usr/local/lib
 
 EXPOSE 3003
 
-ENTRYPOINT [ "TicTacToeSvc", "--threads", "3", "--root", "/usr/src/latest"]
+ENTRYPOINT [ "LivePostSvc", "--threads", "3", "--root", "/usr/src/latest"]

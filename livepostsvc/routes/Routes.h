@@ -1,7 +1,7 @@
 #ifndef MODEL_TTTROUTES_H
 #define MODEL_TTTROUTES_H
 
-#include "tttmodel/Events.h"
+#include "livepostsmodel/Events.h"
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/string_body.hpp>
 #include <memory>

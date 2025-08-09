@@ -1,10 +1,9 @@
-<h1 align="center">Tic tac toe Service Rest API with Boost Asio and PubSub Redis cache</h1>
+<h1 align="center">Live Posts Service Rest API with Boost Asio and PubSub Redis cache</h1>
 
 <br />
-Tic tac toe game which uses an api to create the game and to respond to player moves in the game.
+Live Posts game which uses an api to create posts.
 Uses Postgres for the ClientCS SQL database.
 The API endpoint are on an asio network using async sockets with Boost ASIO and Context.
-
 The API also has websocket for subscription to events made from the API for events that occur
 when a players move is processed and a new board is pushed to the clients application interface.
 
@@ -22,25 +21,25 @@ cmake --build build-release --target ccc
 
 ## Docker container
 
-docker build -t tttsvc:v1.0 .
+docker build -t livepostsvc:v1.0 .
 
-# sample env for tttsvc container
+# sample env for livepostsvc container
 
-docker run -d -p3009:3009 --network="host" --env TTTDB_USER=postgres --env TTTDB_PASSWORD=&lt;password&gt; tttsvc:v1.0
+docker run -d -p3011:3011 --network="host" --env TTTDB_USER=postgres --env TTTDB_PASSWORD=&lt;password&gt; livepostsvc:v1.0
 
 # Sample command to run:-
 
-./build/TicTacToeSvc --threads 2 --root ./latest
+./build/LivePostSvc --threads 2 --root ./latest
 
 ## Uses Docker Compose
 
 Make docker image in project root folder with:
 
 ```
-docker build -t tttsvc:v1.0 -f Dockerfile .
+docker build -t livepostsvc:v1.0 -f Dockerfile .
 ```
 
-The docker compose will run the docker image tttsvc:v1.0.
+The docker compose will run the docker image livepostsvc:v1.0.
 Run docker compose with:
 
 ```
@@ -144,7 +143,7 @@ This is the structure of the files in the project:
     │   ├── load.cpp
     │   ├── load.h
     │   └── main.cpp
-    ├── tttsvc               # TicTacToe service source files
+    ├── livepostsvc          # Service source files
     │   ├── model            # Client CS data structures
     │   ├── nholmann         # JSON header
     │   ├── routes           # Route registered in ClientCS api

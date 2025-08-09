@@ -9,8 +9,8 @@ target_link_libraries(
   Threads::Threads
   -lrestclient-cpp
   -lcurl
-  TTTModel
+  LivePostsModel
 )
 
-get_target_property(dirs TTTModel INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(dirs LivePostsModel INTERFACE_INCLUDE_DIRECTORIES)
 message(STATUS "Include dirs: ${dirs}")

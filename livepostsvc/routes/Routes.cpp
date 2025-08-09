@@ -1,4 +1,4 @@
-#include "TTTRoutes.h"
+#include "Routes.h"
 
 #include "apiserver/Session.h"
 #include "apiserver/PQClient.h"
@@ -6,8 +6,8 @@
 #include "apiserver/RouteHandler.h"
 #include "redisPublish/Publish.h"
 #include <nlohmann/json.hpp>
-#include "tttmodel/model.h"
-#include "tttmodel/pq.h"
+#include "livepostsmodel/model.h"
+#include "livepostsmodel/pq.h"
 #include <memory>
 #include <string>
 #include <iostream>
@@ -16,7 +16,7 @@
 #include <ctime>
 
 using json = nlohmann::json;
-using TTTModel::parseDate;
+using LivePostsModel::parseDate;
 using Rest::RouteHandler;
 
 namespace Routes
