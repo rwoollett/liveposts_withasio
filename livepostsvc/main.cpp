@@ -26,7 +26,7 @@ po::variables_map parse_args(int &argc, char *argv[])
   {
     auto env = std::getenv("PORT");
     if (env == nullptr)
-      return 3009;
+      return 3011;
     auto value = std::stoi(env);
     if (value < std::numeric_limits<std::uint16_t>::min() ||
         value > std::numeric_limits<std::uint16_t>::max())
@@ -127,16 +127,19 @@ int main(int argc, char *argv[])
         doc_root,
         std::make_shared<RedisPublish::Sender>(redisPublisher));
 
-    restserver->get("/health", Routes::TicTacToe::healthCheck);
-    restserver->get("/api/v1/homepage", Routes::TicTacToe::homePage);
-    restserver->get("/api/v1/users", Routes::TicTacToe::userList);
-    restserver->get("/api/v1/posts", Routes::TicTacToe::posts);
-    restserver->put("/api/v1/game/create", Routes::TicTacToe::createGame);
-    restserver->remove("/api/v1/game/complete/{gameId}", Routes::TicTacToe::deleteGame);
-    restserver->put("/api/v1/game/start", Routes::TicTacToe::startGame);
-    restserver->put("/api/v1/game/move", Routes::TicTacToe::boardMove);
-    restserver->get("/api/v1/game/move", Routes::TicTacToe::playerMove);
-    restserver->put("/api/v1/game/board", Routes::TicTacToe::boardUpdate);
+    restserver->get("/health", Routes::LivePosts::healthCheck);
+    restserver->get("/api/v1/homepage", Routes::LivePosts::homePage);
+    restserver->get("/api/v1/users", Routes::LivePosts::userList);
+    restserver->get("/api/v1/posts", Routes::LivePosts::posts);
+
+    restserver->put("/api/v1/posts", Routes::LivePosts::createPost);
+    // restserver->get("/api/v1/posts", Routes::LivePosts::getPosts);
+
+    // restserver->remove("/api/v1/game/complete/{gameId}", Routes::LivePosts::deleteGame);
+    // restserver->put("/api/v1/game/start", Routes::LivePosts::startGame);
+    // restserver->put("/api/v1/game/move", Routes::LivePosts::boardMove);
+    // restserver->get("/api/v1/game/move", Routes::LivePosts::playerMove);
+    // restserver->put("/api/v1/game/board", Routes::LivePosts::boardUpdate);
 
     // Before running do a sanity check on connections for Redis.
     std::this_thread::sleep_for(std::chrono::milliseconds(400));

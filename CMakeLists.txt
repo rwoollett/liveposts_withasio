@@ -50,7 +50,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Change 1) LivePostsModel post, tpDate
+# Change 1) LivePostsModel post, tpDate, reactiosns, date optional, reactions optional on create
 FetchContent_Declare(
   LivePostsModel
   GIT_REPOSITORY https://github.com/rwoollett/livepostmodel.git

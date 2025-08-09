@@ -1,80 +1,29 @@
 ###
-PUT http://localhost:3009/api/v1/game/create HTTP/1.1
+PUT http://localhost:3011/api/v1/posts HTTP/1.1
 Content-Type: application/json
 
 {  
-  "userId": "99999999"
+  "title": "Some tough spiders are thought of simply as figs",
+  "content": "Their bird was, in this moment, a silly bear. They were lost without the amicable kiwi that composed their fox. A peach is an amicable crocodile. A tidy fox without sharks is truly a scorpion of willing cats. Shouting with happiness, a currant is a wise currant!",
+  "user": "400"
 }
 
 ###
-DELETE http://localhost:3009/api/v1/game/complete/26 HTTP/1.1
+DELETE http://localhost:3011/api/v1/game/complete/26 HTTP/1.1
 Content-Type: application/json
 
 ###
-PUT http://localhost:3009/api/v1/game/start HTTP/1.1
-Content-Type: application/json
-
-{  
-  "gameId": "13"
-}
-
-###
-PUT http://localhost:3009/api/v1/game/move HTTP/1.1
-Content-Type: application/json
-
-{
-  "gameId": "13",
-  "player": 1,
-  "moveCell": 8,
-  "isOpponentStart": false
-}
-
-### AI Start game
-PUT http://localhost:3009/api/v1/game/move HTTP/1.1
-Content-Type: application/json
-
-{
-  "gameId": "13",
-  "player": 1,
-  "moveCell": -1,
-  "isOpponentStart": true
-}
-
-###
-GET http://localhost:3009/api/v1/game/move HTTP/1.1
+GET http://localhost:3011/health HTTP/1.1
 Content-Type: application/json
 
 ###
-PUT http://localhost:3009/api/v1/game/board HTTP/1.1
-Content-Type: application/json
-
-{
-  "gameId": "13",
-  "board": "1,2,2,1,0,1,2,0,2",
-  "result": "Draw"
-}
-
-###
-GET http://localhost:3009/health HTTP/1.1
+GET http://localhost:3011/api/v1/homepage  HTTP/1.1
 Content-Type: application/json
 
 ###
-GET http://localhost:3009/api/v1/homepage  HTTP/1.1
+GET http://localhost:3011/api/v1/users  HTTP/1.1
 Content-Type: application/json
 
 ###
-GET http://localhost:3009/api/v1/users  HTTP/1.1
+GET http://localhost:3011/api/v1/posts  HTTP/1.1
 Content-Type: application/json
-
-###
-GET http://localhost:3009/api/v1/posts  HTTP/1.1
-Content-Type: application/json
-
-###
-PUT http://localhost:3003/api/v1/client/disconnect HTTP/1.1
-Content-Type: application/json
-
-{  
-  "sourceIp": "7010",
-  "processId": "12231"
-}
