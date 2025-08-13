@@ -498,8 +498,8 @@ namespace Routes
                    "WHERE \"authId\" = $1 "
                    ";";
 
-      std::cout << "Find User By AuthId\n"
-                  << query << std::endl;
+      D(std::cout << "Find User By AuthId\n"
+                  << query << std::endl;)
 
       auto paramStrings = std::make_shared<std::vector<std::string>>();
       paramStrings->push_back(params["authId"]);
@@ -653,8 +653,8 @@ namespace Routes
                    "WHERE \"id\" = $1 "
                    ";";
 
-      std::cout << "Find User By Id\n"
-                  << query << std::endl;
+      D(std::cout << "Find User By Id\n"
+                  << query << std::endl;)
 
       auto paramStrings = std::make_shared<std::vector<std::string>>();
       paramStrings->push_back(params["id"]);
