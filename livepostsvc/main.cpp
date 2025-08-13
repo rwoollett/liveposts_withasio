@@ -135,6 +135,10 @@ int main(int argc, char *argv[])
     restserver->put("/api/v1/posts", Routes::LivePosts::createPost);
     restserver->get("/api/v1/posts", Routes::LivePosts::fetchPosts);
 
+    restserver->put("/api/v1/users", Routes::LivePosts::createUser);
+    restserver->get("/api/v1/user/fetchbyauthid/{authId}", Routes::LivePosts::findUserByAuthId);
+    restserver->get("/api/v1/user/fetchbyid/{id}", Routes::LivePosts::findUserById);
+
     // restserver->remove("/api/v1/game/complete/{gameId}", Routes::LivePosts::deleteGame);
     // restserver->put("/api/v1/game/start", Routes::LivePosts::startGame);
     // restserver->put("/api/v1/game/move", Routes::LivePosts::boardMove);

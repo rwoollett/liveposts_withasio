@@ -47,21 +47,21 @@ namespace Routes
         return send(std::move(Rest::Response::bad_request(req, e)));
       }
 
-      if (!LivePostsModel::Validate::Post(post))
+      if (!LivePostsModel::Validate::Posts(post))
       {
         return send(std::move(Rest::Response::bad_request(req, "Post is not having valid data.")));
       }
 
       auto sql =
-          "INSERT INTO \"Post\" "
-          "(\"title\", \"content\", \"user\", \"date\") VALUES ($1, $2, $3, NOW()) "
-          "RETURNING id, \"title\", \"content\", \"user\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\""
+          "INSERT INTO \"Posts\" "
+          "(\"title\", \"content\", \"userId\", \"date\") VALUES ($1, $2, $3, NOW()) "
+          "RETURNING id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\""
           ";";
 
       auto paramStrings = std::make_shared<std::vector<std::string>>();
       paramStrings->push_back(post.title);
       paramStrings->push_back(post.content);
-      paramStrings->push_back(post.user);
+      paramStrings->push_back(std::to_string(post.userId));
 
       auto paramLengths = std::make_shared<std::vector<int>>();
       for (const auto &s : *paramStrings)
@@ -164,7 +164,7 @@ namespace Routes
         try
         {
           // Only one row is returned
-          *newPost = LivePostsModel::PG::Post::fromPGRes(res, cols, 0);
+          *newPost = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
           json jsonGame = *newPost;
           jsonGame["id"] = PQgetvalue(res, 0, 0);
           root["createPost"] = jsonGame;
@@ -207,12 +207,12 @@ namespace Routes
     {
 
       auto query = "SELECT "
-                   "id, \"title\", \"content\", \"user\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\" "
-                   "FROM \"Post\" "
+                   "id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\" "
+                   "FROM \"Posts\" "
                    ";";
 
       D(std::cout << "FetchPost query\n"
-                << query << std::endl;)
+                  << query << std::endl;)
 
       auto paramStrings = std::make_shared<std::vector<std::string>>();
       auto paramLengths = std::make_shared<std::vector<int>>();
@@ -293,10 +293,10 @@ namespace Routes
           root["fetchPosts"] = json::array();
           for (int row = 0; row < rows; row++)
           {
-            LivePostsModel::Post post = LivePostsModel::PG::Post::fromPGRes(res, cols, row);
+            LivePostsModel::Post post = LivePostsModel::PG::Posts::fromPGRes(res, cols, row);
             root["fetchPosts"].push_back(post);
           }
-        } 
+        }
         catch (const std::exception &e)
         {
           return send(std::move(Rest::Response::server_error(req, e.what())));
@@ -306,7 +306,7 @@ namespace Routes
           return send(std::move(Rest::Response::server_error(req, e)));
         }
         apiResult->assign(root.dump());
-        //std::cout << "=====> Fetch Posts query found: " << root.dump() << std::endl;
+        // std::cout << "=====> Fetch Posts query found: " << root.dump() << std::endl;
 
         dbclient->asyncQuery("COMMIT", endTransaction);
       };
@@ -329,6 +329,456 @@ namespace Routes
         }
 
         dbclient->asyncQuery(query, queryFetchPosts);
+      };
+
+      dbclient->asyncQuery("BEGIN", beginTransaction);
+    };
+
+    /**=============================================================== */
+    /** Create user                                                    */
+    /**=============================================================== */
+    void createUser(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
+    {
+      // Validation check on put req body and bad request is made if not valid
+      LivePostsModel::User user;
+      try
+      {
+        user = json::parse(req.body());
+      }
+      catch (json::exception &e)
+      {
+        json err = e.what();
+        auto msg = err.dump();
+        return send(std::move(Rest::Response::bad_request(req, msg.substr(1, msg.size() - 2))));
+      }
+      catch (const std::string &e)
+      {
+        return send(std::move(Rest::Response::bad_request(req, e)));
+      }
+
+      if (!LivePostsModel::Validate::Users(user))
+      {
+        return send(std::move(Rest::Response::bad_request(req, "User is not having valid data.")));
+      }
+
+      auto sql =
+          "INSERT INTO \"Users\" "
+          "(\"authId\", \"name\") VALUES ($1, $2) "
+          "RETURNING id, \"authId\", \"name\""
+          ";";
+
+      auto paramStrings = std::make_shared<std::vector<std::string>>();
+      paramStrings->push_back(user.authId);
+      paramStrings->push_back(user.name);
+
+      auto paramLengths = std::make_shared<std::vector<int>>();
+      for (const auto &s : *paramStrings)
+        paramLengths->push_back(s.size());
+
+      auto paramFormats = std::make_shared<std::vector<int>>();
+      for (const auto &s : *paramStrings)
+        paramFormats->push_back(0);
+
+      auto apiResult = std::make_shared<std::string>();
+      // Place holder for the event
+      auto newUser = std::make_shared<LivePostsModel::User>();
+
+      auto endTransaction = [redisPublish, req, apiResult, send, newUser](PGresult *endRes)
+      {
+        if (!endRes)
+        {
+          D(std::cerr << "endTransaction Create User has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        ExecStatusType resStatus = PQresultStatus(endRes);
+        if (resStatus != PGRES_COMMAND_OK)
+        {
+          json error = "COMMIT command Create User execution failed: " + std::string(PQresultErrorMessage(endRes));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+        }
+
+        return send(std::move(Rest::Response::success_request(req, apiResult->c_str())));
+      };
+
+      auto paramQueryCreatePost = [=](PGresult *res)
+      {
+        if (!res)
+        {
+          D(std::cerr << "Query Create User has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        json root;
+        root["createUser"] = {};
+
+        ExecStatusType resStatus = PQresultStatus(res);
+        if (resStatus != PGRES_TUPLES_OK)
+        {
+          json error = "Query createUser execution failed: " + std::string(PQresultErrorMessage(res));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          dbclient->asyncQuery("ROLLBACK", [=](PGresult *res)
+                               {
+                                 if (!res)
+                                 {
+                                   D(std::cerr << "ROLLBACK Create User Query has been shown as finished when null res returned." << std::endl;)
+                                   return;
+                                 }
+                                 return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+                                 //
+                               });
+
+          return;
+        }
+        int rows = PQntuples(res);
+        int cols = PQnfields(res);
+        try
+        {
+          // Only one row is returned
+          *newUser = LivePostsModel::PG::Users::fromPGRes(res, cols, 0);
+          json jsonGame = *newUser;
+          jsonGame["id"] = PQgetvalue(res, 0, 0);
+          root["createUser"] = jsonGame;
+        }
+        catch (const std::string &e)
+        {
+          return send(std::move(Rest::Response::server_error(req, e)));
+        }
+        apiResult->assign(root.dump());
+        dbclient->asyncQuery("COMMIT", endTransaction);
+      };
+
+      auto beginTransaction = [=](PGresult *beginRes)
+      {
+        if (!beginRes)
+        {
+          D(std::cerr << "beginTransaction Create User Query has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        ExecStatusType resStatus = PQresultStatus(beginRes);
+        if (resStatus != PGRES_COMMAND_OK)
+        {
+          json error = "Begin command Create User Query execution failed: " + std::string(PQresultErrorMessage(beginRes));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+        }
+
+        dbclient->asyncParamQuery(sql, *paramStrings, *paramLengths, *paramFormats, paramQueryCreatePost);
+      };
+
+      dbclient->asyncQuery("BEGIN", beginTransaction);
+    };
+
+    /**================================================================== */
+    /** Get User By AuthId                                             */
+    /**================================================================== */
+    void findUserByAuthId(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
+    {
+      // Need to get the route param value
+
+      auto params = sess->getReqUrlParameters(); // The FROM and TO in the request url
+      auto [route_url, query_params] = RouteHandler::parse_query_params(std::string(req.target()));
+      for (const auto &[key, value] : query_params)
+      {
+        std::cout << key << ": " << value << std::endl;
+      };
+      for (auto param : params)
+      {
+        std::cout << param.first << " " << param.second << std::endl;
+      };
+
+      auto query = "SELECT "
+                   "id, \"authId\", \"name\" "
+                   "FROM \"Users\" "
+                   "WHERE \"authId\" = $1 "
+                   ";";
+
+      std::cout << "Find User By AuthId\n"
+                  << query << std::endl;
+
+      auto paramStrings = std::make_shared<std::vector<std::string>>();
+      paramStrings->push_back(params["authId"]);
+
+      auto paramLengths = std::make_shared<std::vector<int>>();
+      for (const auto &s : *paramStrings)
+        paramLengths->push_back(s.size());
+
+      auto paramFormats = std::make_shared<std::vector<int>>();
+      for (const auto &s : *paramStrings)
+        paramFormats->push_back(0);
+
+      auto apiResult = std::make_shared<std::string>();
+      //      auto foundMove = std::make_shared<TTTModel::PlayerMove>();
+
+      auto endTransaction = [req, apiResult, send](PGresult *endRes)
+      {
+        if (!endRes)
+        {
+          D(std::cerr << "endTransaction Find User By AuthId has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        ExecStatusType resStatus = PQresultStatus(endRes);
+        if (resStatus != PGRES_COMMAND_OK)
+        {
+          json error = "COMMIT command Find User By AuthId execution failed: " + std::string(PQresultErrorMessage(endRes));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+        }
+
+        return send(std::move(Rest::Response::success_request(req, apiResult->c_str())));
+      };
+
+      auto queryFindUserByAuthId = [=](PGresult *res)
+      {
+        if (!res)
+        {
+          D(std::cerr << "Query Find User By AuthId has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        json root;
+        root["fetchUserByAuthId"] = {};
+
+        ExecStatusType resStatus = PQresultStatus(res);
+        if (resStatus != PGRES_TUPLES_OK)
+        {
+          json error = "Query Find User By AuthId execution failed: " + std::string(PQresultErrorMessage(res));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          dbclient->asyncQuery("ROLLBACK", [=](PGresult *res)
+                               {
+                                 if (!res)
+                                 {
+                                   D(std::cerr << "ROLLBACK Find User By AuthId Query has been shown as finished when null res returned." << std::endl;)
+                                   return;
+                                 }
+                                 return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+                                 //
+                               });
+
+          return;
+        }
+        int rows = PQntuples(res);
+        int cols = PQnfields(res);
+        // for (int i = 0; i < cols; i++)
+        // {
+        //   Oid typeOid = PQftype(res, i); // Get the data type OID of the column
+        //   printf("Column %d has data type OID: %u\n", i, typeOid);
+        //   const char *field_name = PQfname(res, i);
+        //   std::cout << "Column " << i << " name: " << field_name << std::endl;
+        // }
+
+        if (rows == 0)
+        {
+          root["fetchUserByAuthId"] = json::array();
+          apiResult->assign(root.dump());
+          dbclient->asyncQuery("COMMIT", endTransaction);
+          return;
+        }
+
+        try
+        {
+          root["fetchUserByAuthId"] = json::array();
+          for (int row = 0; row < rows; row++)
+          {
+            LivePostsModel::User user = LivePostsModel::PG::Users::fromPGRes(res, cols, row);
+            root["fetchUserByAuthId"].push_back(user);
+          }
+        }
+        catch (const std::exception &e)
+        {
+          return send(std::move(Rest::Response::server_error(req, e.what())));
+        }
+        catch (const std::string &e)
+        {
+          return send(std::move(Rest::Response::server_error(req, e)));
+        }
+        apiResult->assign(root.dump());
+        // std::cout << "=====> Find User By AuthId query found: " << root.dump() << std::endl;
+
+        dbclient->asyncQuery("COMMIT", endTransaction);
+      };
+
+      auto beginTransaction = [=](PGresult *beginRes)
+      {
+        if (!beginRes)
+        {
+          D(std::cerr << "beginTransaction Find User By AuthId Query has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        ExecStatusType resStatus = PQresultStatus(beginRes);
+        if (resStatus != PGRES_COMMAND_OK)
+        {
+          json error = "Begin command Find User By AuthId Query execution failed: " + std::string(PQresultErrorMessage(beginRes));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+        }
+
+        dbclient->asyncParamQuery(query, *paramStrings, *paramLengths, *paramFormats, queryFindUserByAuthId);
+      };
+
+      dbclient->asyncQuery("BEGIN", beginTransaction);
+    };
+
+    /**================================================================== */
+    /** Get User By Id                                             */
+    /**================================================================== */
+    void findUserById(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
+    {
+      // Need to get the route param value
+
+      auto params = sess->getReqUrlParameters(); // The FROM and TO in the request url
+      auto [route_url, query_params] = RouteHandler::parse_query_params(std::string(req.target()));
+      for (const auto &[key, value] : query_params)
+      {
+        std::cout << key << ": " << value << std::endl;
+      };
+      for (auto param : params)
+      {
+        std::cout << param.first << " " << param.second << std::endl;
+      };
+
+      auto query = "SELECT "
+                   "id, \"authId\", \"name\" "
+                   "FROM \"Users\" "
+                   "WHERE \"id\" = $1 "
+                   ";";
+
+      std::cout << "Find User By Id\n"
+                  << query << std::endl;
+
+      auto paramStrings = std::make_shared<std::vector<std::string>>();
+      paramStrings->push_back(params["id"]);
+
+      auto paramLengths = std::make_shared<std::vector<int>>();
+      for (const auto &s : *paramStrings)
+        paramLengths->push_back(s.size());
+
+      auto paramFormats = std::make_shared<std::vector<int>>();
+      for (const auto &s : *paramStrings)
+        paramFormats->push_back(0);
+
+      auto apiResult = std::make_shared<std::string>();
+      //      auto foundMove = std::make_shared<TTTModel::PlayerMove>();
+
+      auto endTransaction = [req, apiResult, send](PGresult *endRes)
+      {
+        if (!endRes)
+        {
+          D(std::cerr << "endTransaction Find User By Id has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        ExecStatusType resStatus = PQresultStatus(endRes);
+        if (resStatus != PGRES_COMMAND_OK)
+        {
+          json error = "COMMIT command Find User By Id execution failed: " + std::string(PQresultErrorMessage(endRes));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+        }
+
+        return send(std::move(Rest::Response::success_request(req, apiResult->c_str())));
+      };
+
+      auto queryFindUserByAuthId = [=](PGresult *res)
+      {
+        if (!res)
+        {
+          D(std::cerr << "Query Find User By Id has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        json root;
+        root["fetchUserById"] = {};
+
+        ExecStatusType resStatus = PQresultStatus(res);
+        if (resStatus != PGRES_TUPLES_OK)
+        {
+          json error = "Query Find User By Id execution failed: " + std::string(PQresultErrorMessage(res));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          dbclient->asyncQuery("ROLLBACK", [=](PGresult *res)
+                               {
+                                 if (!res)
+                                 {
+                                   D(std::cerr << "ROLLBACK Find User By Id Query has been shown as finished when null res returned." << std::endl;)
+                                   return;
+                                 }
+                                 return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+                                 //
+                               });
+
+          return;
+        }
+        int rows = PQntuples(res);
+        int cols = PQnfields(res);
+        // for (int i = 0; i < cols; i++)
+        // {
+        //   Oid typeOid = PQftype(res, i); // Get the data type OID of the column
+        //   printf("Column %d has data type OID: %u\n", i, typeOid);
+        //   const char *field_name = PQfname(res, i);
+        //   std::cout << "Column " << i << " name: " << field_name << std::endl;
+        // }
+
+        if (rows == 0)
+        {
+          root["fetchUserById"] = json::array();
+          apiResult->assign(root.dump());
+          dbclient->asyncQuery("COMMIT", endTransaction);
+          return;
+        }
+
+        try
+        {
+          root["fetchUserById"] = json::array();
+          for (int row = 0; row < rows; row++)
+          {
+            LivePostsModel::User user = LivePostsModel::PG::Users::fromPGRes(res, cols, row);
+            root["fetchUserById"].push_back(user);
+          }
+        }
+        catch (const std::exception &e)
+        {
+          return send(std::move(Rest::Response::server_error(req, e.what())));
+        }
+        catch (const std::string &e)
+        {
+          return send(std::move(Rest::Response::server_error(req, e)));
+        }
+        apiResult->assign(root.dump());
+        // std::cout << "=====> Find User By AuthId query found: " << root.dump() << std::endl;
+
+        dbclient->asyncQuery("COMMIT", endTransaction);
+      };
+
+      auto beginTransaction = [=](PGresult *beginRes)
+      {
+        if (!beginRes)
+        {
+          D(std::cerr << "beginTransaction Find User By Id Query has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        ExecStatusType resStatus = PQresultStatus(beginRes);
+        if (resStatus != PGRES_COMMAND_OK)
+        {
+          json error = "Begin command Find User By Id Query execution failed: " + std::string(PQresultErrorMessage(beginRes));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+        }
+
+        dbclient->asyncParamQuery(query, *paramStrings, *paramLengths, *paramFormats, queryFindUserByAuthId);
       };
 
       dbclient->asyncQuery("BEGIN", beginTransaction);
