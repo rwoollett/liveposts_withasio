@@ -207,8 +207,9 @@ namespace Routes
     {
 
       auto query = "SELECT "
-                   "id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\" "
-                   "FROM \"Posts\" "
+                   "\"Posts\".\"id\", \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+                   "\"Users\".\"name\" AS \"userName\" "
+                   "FROM \"Posts\" LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\""
                    ";";
 
       D(std::cout << "FetchPost query\n"
@@ -294,6 +295,7 @@ namespace Routes
           for (int row = 0; row < rows; row++)
           {
             LivePostsModel::Post post = LivePostsModel::PG::Posts::fromPGRes(res, cols, row);
+//            std::cout << "userName: " << std::string(PQgetvalue(res, row, 10)) << std::endl;
             root["fetchPosts"].push_back(post);
           }
         }
