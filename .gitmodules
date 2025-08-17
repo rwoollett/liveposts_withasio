@@ -1,0 +1,3 @@
+[submodule "apiserver"]
+	path = apiserver
+	url = git@github.com:rwoollett/apiserver.git
