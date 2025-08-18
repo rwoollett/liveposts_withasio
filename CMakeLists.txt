@@ -51,7 +51,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(nlohmann_json)
 
 # Change 1) LivePostsModel post, tpDate, reactiosns, date optional, reactions optional on create
-# Posts and Users, userName string
+# Posts and Users, userName string optional userName on post json to Post
 FetchContent_Declare(
   LivePostsModel
   GIT_REPOSITORY https://github.com/rwoollett/livepostmodel.git
@@ -65,6 +65,14 @@ FetchContent_Declare(
   GIT_TAG master
 )
 FetchContent_MakeAvailable(cookies)
+
+FetchContent_Declare(
+  jwt-cpp
+  GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
+  GIT_TAG v0.7.0
+)
+set(JWT_BUILD_EXAMPLES OFF CACHE BOOL "disable building examples" FORCE)
+FetchContent_MakeAvailable(jwt-cpp)
 
 message(${cookies_SOURCE_DIR})
 

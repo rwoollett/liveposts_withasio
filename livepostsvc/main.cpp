@@ -67,9 +67,10 @@ int main(int argc, char *argv[])
     auto apidb_password = std::getenv("APIDB_PASSWORD");
     auto apidb_host = std::getenv("APIDB_HOST");
     auto apidb_port = std::getenv("APIDB_PORT");
+    auto jwt_secret_key = std::getenv("JWT_SECRET_KEY");
 
     if (apidb_name == nullptr || apidb_user == nullptr || apidb_password == nullptr ||
-        apidb_host == nullptr || apidb_port == nullptr)
+        apidb_host == nullptr || apidb_port == nullptr || jwt_secret_key == nullptr)
     {
       std::cout << "Require ENV variables set for APIDB_NAME, APIDB_USER, APIDB_PASSWORD, APIDB_HOST and APIDB_PORT." << std::endl;
       return EXIT_FAILURE;

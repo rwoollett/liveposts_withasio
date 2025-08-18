@@ -8,6 +8,10 @@
 #include <nlohmann/json.hpp>
 #include "livepostsmodel/model.h"
 #include "livepostsmodel/pq.h"
+
+#include <jwt-cpp/jwt.h>
+#include <jwt-cpp/traits/nlohmann-json/traits.h>
+
 #include <memory>
 #include <string>
 #include <iostream>
@@ -25,11 +29,42 @@ namespace Routes
   namespace LivePosts
   {
 
+    bool verify_jwt(const std::string &token)
+    {
+      auto jwt_secret_key = std::getenv("JWT_SECRET_KEY");
+      using traits = jwt::traits::nlohmann_json;
+      try
+      {
+        auto decoded = jwt::decode<traits>(token);
+        std::cout << " decoded:" << decoded.get_payload() << std::endl;
+        auto verifier = jwt::verify<traits>()
+                            .allow_algorithm(jwt::algorithm::hs256{std::string(jwt_secret_key)});
+                            //.with_issuer("your_issuer");
+
+        verifier.verify(decoded);
+        return true; // Token is valid
+      }
+      catch (const std::exception &e)
+      {
+        std::cerr << "JWT verification failed: " << e.what() << std::endl;
+        return false; // Invalid token
+      }
+    }
+
     /**=============================================================== */
     /** Create post                                                    */
     /**=============================================================== */
     void createPost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
+      // TODO JWT verify
+      // Extract JWT from Authorization header
+      auto auth_header = req[boost::beast::http::field::authorization];
+      if (auth_header.empty() || !verify_jwt(auth_header))
+      {
+        // Respond with 401 Unauthorized
+        return send(Rest::Response::unauthorized_request(req, "Unauthorized"));
+      }
+
       // Validation check on put req body and bad request is made if not valid
       LivePostsModel::Post post;
       try
@@ -55,7 +90,8 @@ namespace Routes
       auto sql =
           "INSERT INTO \"Posts\" "
           "(\"title\", \"content\", \"userId\", \"date\") VALUES ($1, $2, $3, NOW()) "
-          "RETURNING id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\""
+          "RETURNING id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+          "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
           ";";
 
       auto paramStrings = std::make_shared<std::vector<std::string>>();
@@ -295,7 +331,7 @@ namespace Routes
           for (int row = 0; row < rows; row++)
           {
             LivePostsModel::Post post = LivePostsModel::PG::Posts::fromPGRes(res, cols, row);
-//            std::cout << "userName: " << std::string(PQgetvalue(res, row, 10)) << std::endl;
+            //            std::cout << "userName: " << std::string(PQgetvalue(res, row, 10)) << std::endl;
             root["fetchPosts"].push_back(post);
           }
         }

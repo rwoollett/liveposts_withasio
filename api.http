@@ -10,6 +10,7 @@ Content-Type: application/json
 ###
 PUT  http://172.24.152.77:3011/api/v1/posts HTTP/1.1
 Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYzNDNlNWMxLTQ0NWItNGNmOS05MTc5LTM2Mzc2MGNjZmUyYyIsImVtYWlsIjoidGVtcEBoZWxsby5jby5ueiIsImlhdCI6MTc1NTUwNTM1OH0._r-O9d6cC5XMzhagNGrmmmZKO3AdmZlaggq6QViBK-c
 
 {  
   "userId": 1,
