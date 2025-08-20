@@ -29,17 +29,35 @@ namespace Routes
   namespace LivePosts
   {
 
-    bool verify_jwt(const std::string &token)
+    bool verify_jwt(const std::string &auth_header)
     {
       auto jwt_secret_key = std::getenv("JWT_SECRET_KEY");
+      std::string keyword = "Bearer";
+      std::string token;
       using traits = jwt::traits::nlohmann_json;
+
+      // Find the position of "Bearer"
+      size_t pos = auth_header.find(keyword);
+      if (pos != std::string::npos)
+      {
+        // Extract the token after "Bearer"
+        token = token.substr(pos + keyword.length());
+
+        // Trim leading spaces (optional)
+        token.erase(0, token.find_first_not_of(" "));
+      }
+      else
+      {
+        return false;
+      }
+
       try
       {
         auto decoded = jwt::decode<traits>(token);
         std::cout << " decoded:" << decoded.get_payload() << std::endl;
         auto verifier = jwt::verify<traits>()
                             .allow_algorithm(jwt::algorithm::hs256{std::string(jwt_secret_key)});
-                            //.with_issuer("your_issuer");
+        //.with_issuer("your_issuer");
 
         verifier.verify(decoded);
         return true; // Token is valid
