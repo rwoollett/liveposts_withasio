@@ -24,6 +24,7 @@ reflex_linux_amd64.tar.gz
 set_env.sh
 set_tp430env.sh
 nmtoken_runner
+api.http
 
 # http://www.gnu.org/software/automake
 

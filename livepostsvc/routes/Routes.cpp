@@ -41,7 +41,7 @@ namespace Routes
       if (pos != std::string::npos)
       {
         // Extract the token after "Bearer"
-        token = token.substr(pos + keyword.length());
+        token = auth_header.substr(pos + keyword.length());
 
         // Trim leading spaces (optional)
         token.erase(0, token.find_first_not_of(" "));
