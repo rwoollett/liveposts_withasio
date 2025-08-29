@@ -6,7 +6,7 @@ add_executable(LivePostSvc
   main.cpp
 )
 
-target_compile_definitions(LivePostSvc PUBLIC _GLIBCXX_PARALLEL=1 JWT_DISABLE_PICOJSON=1)
+target_compile_definitions(LivePostSvc PUBLIC JWT_DISABLE_PICOJSON=1)
 
 target_include_directories(
   LivePostSvc PUBLIC
@@ -20,7 +20,7 @@ target_link_libraries(
   LivePostSvc PUBLIC
   Boost::program_options
   Boost::url
-  Threads::Threads
+#  Threads::Threads
   APIServer
   LivePostsModel
   Cookies

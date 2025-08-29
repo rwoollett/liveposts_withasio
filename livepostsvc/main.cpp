@@ -140,20 +140,6 @@ int main(int argc, char *argv[])
     restserver->get("/api/v1/user/fetchbyauthid/{authId}", Routes::LivePosts::findUserByAuthId);
     restserver->get("/api/v1/user/fetchbyid/{id}", Routes::LivePosts::findUserById);
 
-    // restserver->remove("/api/v1/game/complete/{gameId}", Routes::LivePosts::deleteGame);
-    // restserver->put("/api/v1/game/start", Routes::LivePosts::startGame);
-    // restserver->put("/api/v1/game/move", Routes::LivePosts::boardMove);
-    // restserver->get("/api/v1/game/move", Routes::LivePosts::playerMove);
-    // restserver->put("/api/v1/game/board", Routes::LivePosts::boardUpdate);
-
-    // Before running do a sanity check on connections for Redis.
-    std::this_thread::sleep_for(std::chrono::milliseconds(400));
-    std::cout << "Redis publisher connected: " << (redisPublisher.isRedisConnected() ? "true" : "false") << std::endl;
-    if (!(redisPublisher.isRedisConnected()))
-    {
-      throw std::string("Redis publisher is not connected.\n");
-    }
-
     // Begin the rest server at tcp address/port ioc context in a thread pool (no. of threads in cmd arg)
     restserver->run();
 
