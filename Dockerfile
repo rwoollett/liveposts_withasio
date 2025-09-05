@@ -7,7 +7,8 @@ RUN apt update -y;
 RUN apt install -y curl openssl libssl-dev zlib1g-dev libpq-dev python3 python3-pybind11 python3-dev;
 
 FROM livepostsvc_base AS livepostsvc_boost
-RUN apt install -y build-essential cmake curl git pkg-config;
+
+RUN apt install -y git build-essential cmake pkg-config;
 
 WORKDIR /usr/src
 
