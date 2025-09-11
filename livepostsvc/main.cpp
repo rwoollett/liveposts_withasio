@@ -129,16 +129,16 @@ int main(int argc, char *argv[])
         std::make_shared<RedisPublish::Sender>(redisPublisher));
 
     restserver->get("/health", Routes::LivePosts::healthCheck);
-    restserver->get("/api/v1/homepage", Routes::LivePosts::homePage);
-    restserver->get("/api/v1/users", Routes::LivePosts::userList);
-    restserver->get("/api/v1/posts2", Routes::LivePosts::posts);
+    restserver->get("/api/v1/liveposts/homepage", Routes::LivePosts::homePage);
+    restserver->get("/api/v1/liveposts/users", Routes::LivePosts::userList);
+    //restserver->get("/api/v1/posts2", Routes::LivePosts::posts);
 
-    restserver->put("/api/v1/posts", Routes::LivePosts::createPost);
-    restserver->get("/api/v1/posts", Routes::LivePosts::fetchPosts);
+    restserver->put("/api/v1/liveposts/posts", Routes::LivePosts::createPost);
+    restserver->get("/api/v1/liveposts/posts", Routes::LivePosts::fetchPosts);
 
-    restserver->put("/api/v1/users", Routes::LivePosts::createUser);
-    restserver->get("/api/v1/user/fetchbyauthid/{authId}", Routes::LivePosts::findUserByAuthId);
-    restserver->get("/api/v1/user/fetchbyid/{id}", Routes::LivePosts::findUserById);
+    restserver->put("/api/v1/liveposts/users", Routes::LivePosts::createUser);
+    restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", Routes::LivePosts::findUserByAuthId);
+    restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", Routes::LivePosts::findUserById);
 
     // Begin the rest server at tcp address/port ioc context in a thread pool (no. of threads in cmd arg)
     restserver->run();
