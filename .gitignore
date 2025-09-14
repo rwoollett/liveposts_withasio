@@ -5,6 +5,7 @@ testpersonal.*
 moduledata.bin
 modulesavedata.bin
 build-release
+build-debug
 build
 build-dev
 .vscode

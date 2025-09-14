@@ -14,10 +14,12 @@ when a players move is processed and a new board is pushed to the clients applic
 ## Create a cmake build folder:
 
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -G "Unix Makefiles" . -B ./build-release
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr/local -G "Unix Makefiles" . -B ./build-debug
 
 ## Use the built package to test:
 
-cmake --build build-release --target ccc
+cmake --build build-release --target LivePostSvc
+cmake --build build-debug --target LivePostSvc
 
 ## Docker container
 
