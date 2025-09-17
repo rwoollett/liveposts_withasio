@@ -11,6 +11,8 @@
 
 #include <jwt-cpp/jwt.h>
 #include <jwt-cpp/traits/nlohmann-json/traits.h>
+#include <cppcodec/base64_rfc4648.hpp>
+#include "cookies/parse.h"
 
 #include <memory>
 #include <string>
@@ -19,6 +21,7 @@
 #include <chrono>
 #include <ctime>
 
+using base64 = cppcodec::base64_rfc4648;
 using json = nlohmann::json;
 using LivePostsModel::parseDate;
 using Rest::RouteHandler;
@@ -54,7 +57,7 @@ namespace Routes
       try
       {
         auto decoded = jwt::decode<traits>(token);
-        std::cout << " decoded:" << decoded.get_payload() << std::endl;
+        D(std::cout << " decoded:" << decoded.get_payload() << std::endl;)
         auto verifier = jwt::verify<traits>()
                             .allow_algorithm(jwt::algorithm::hs256{std::string(jwt_secret_key)});
         //.with_issuer("your_issuer");
@@ -74,12 +77,24 @@ namespace Routes
     /**=============================================================== */
     void createPost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
-      // TODO JWT verify
-      // Extract JWT from Authorization header
-      auto auth_header = req[boost::beast::http::field::authorization];
-      if (auth_header.empty() || !verify_jwt(auth_header))
+
+      auto cookies{Cookies::cookie_map(req[http::field::cookie])}; // use the python RFC6265-compliant.
+      std::cout << "Cookie values" << std::endl;
+      D(for (const auto &[key, val] : cookies)
       {
-        // Respond with 401 Unauthorized
+        std::cout << key << " = " << val << '\n';
+      })
+
+      if (!cookies.contains("auth:sess")) {
+        return send(Rest::Response::unauthorized_request(req, "No credentials (cookies) found."));
+      }
+
+      std::vector<uint8_t> decoded_array = base64::decode(cookies.at("auth:sess"));
+      std::string decoded(decoded_array.begin(), decoded_array.end());
+      json auth_sess = json::parse(decoded);
+  
+      if (!verify_jwt("Bearer " + auth_sess.value("jwt", "empty")))
+      {
         return send(Rest::Response::unauthorized_request(req, "Unauthorized"));
       }
 

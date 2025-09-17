@@ -25,6 +25,7 @@ target_link_libraries(
   LivePostsModel
   Cookies
   jwt-cpp::jwt-cpp
+  cppcodec
 )
 
 get_target_property(dirs LivePostsModel INTERFACE_INCLUDE_DIRECTORIES)

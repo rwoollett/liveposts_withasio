@@ -7,7 +7,7 @@
 #include <boost/program_options.hpp>
 #include <thread>
 #include <chrono>
-#include "cookies/parse.h"
+//#include "cookies/parse.h"
 #include "routes/Routes.h"
 #include "../redisPublish/Publish.h" // RedisPublish class
 #include <boost/redis/src.hpp>       // boost redis implementation
@@ -106,14 +106,14 @@ int main(int argc, char *argv[])
     std::cout << "Listening on " << address << ":" << port << " [Threads:" << threads << "]" << std::endl;
     std::cout << "Document root: " << *doc_root << std::endl;
 
-    std::unordered_map<std::string, std::string> cookies;
-    // Display parsed cookies
-    cookies = Cookies::cookie_map("username=JohnDoe; sessionid=12345;");
-    std::cout << "Cookie values" << std::endl;
-    for (const auto &[key, val] : cookies)
-    {
-      std::cout << key << " = " << val << '\n';
-    }
+    // std::unordered_map<std::string, std::string> cookies;
+    // // Display parsed cookies
+    // cookies = Cookies::cookie_map("username=JohnDoe; sessionid=12345;");
+    // std::cout << "Cookie values" << std::endl;
+    // for (const auto &[key, val] : cookies)
+    // {
+    //   std::cout << key << " = " << val << '\n';
+    // }
 
     // The io_context is required for all I/O
     net::io_context ioc{threads};
