@@ -80,26 +80,35 @@ namespace Routes
 
       auto cookies{Cookies::cookie_map(req[http::field::cookie])}; // use the python RFC6265-compliant.
       std::cout << "Cookie values" << std::endl;
-      D(for (const auto &[key, val] : cookies)
+      for (const auto &[key, val] : cookies)
       {
         std::cout << key << " = " << val << '\n';
-      })
+      }
 
       if (!cookies.contains("auth:sess")) {
         return send(Rest::Response::unauthorized_request(req, "No credentials (cookies) found."));
       }
-
-      std::vector<uint8_t> decoded_array = base64::decode(cookies.at("auth:sess"));
-      std::string decoded(decoded_array.begin(), decoded_array.end());
-      json auth_sess = json::parse(decoded);
-  
-      if (!verify_jwt("Bearer " + auth_sess.value("jwt", "empty")))
+      try {
+        std::vector<uint8_t> decoded_array = base64::decode(cookies.at("auth:sess"));
+        std::string decoded(decoded_array.begin(), decoded_array.end());
+        json auth_sess = json::parse(decoded);
+    
+        if (!verify_jwt("Bearer " + auth_sess.value("jwt", "empty")))
+        {
+          return send(Rest::Response::unauthorized_request(req, "Unauthorized"));
+        }
+        
+      } catch (const std::exception &e) 
       {
-        return send(Rest::Response::unauthorized_request(req, "Unauthorized"));
+        json err = e.what();
+        auto msg = err.dump();
+        return send(std::move(Rest::Response::bad_request(req, msg.substr(1, msg.size() - 2))));
       }
 
       // Validation check on put req body and bad request is made if not valid
       LivePostsModel::Post post;
+
+      std::cout << req.body() << std::endl;
       try
       {
         post = json::parse(req.body());
