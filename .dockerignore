@@ -1,6 +1,9 @@
 build-release
+build-debug
 build
 README
 .git
 scratch.txt
 api.http
+scratch.txt
+set_env.sh

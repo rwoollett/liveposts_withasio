@@ -1,7 +1,7 @@
 # The new base image to contain runtime dependencies
 # Dependencies: Boost >= 1.86
 
-FROM debian:12.11 AS livepostsvc_base
+FROM debian:12.12 AS livepostsvc_base
 
 RUN apt update -y;  
 RUN apt install -y curl openssl libssl-dev zlib1g-dev libpq-dev python3 python3-pybind11 python3-dev;
