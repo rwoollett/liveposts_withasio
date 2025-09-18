@@ -242,7 +242,6 @@ namespace Routes
           // Only one row is returned
           *newPost = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
           json jsonGame = *newPost;
-          jsonGame["id"] = PQgetvalue(res, 0, 0);
           root["createPost"] = jsonGame;
         }
         catch (const std::string &e)
@@ -518,7 +517,6 @@ namespace Routes
           // Only one row is returned
           *newUser = LivePostsModel::PG::Users::fromPGRes(res, cols, 0);
           json jsonGame = *newUser;
-          jsonGame["id"] = PQgetvalue(res, 0, 0);
           root["createUser"] = jsonGame;
         }
         catch (const std::string &e)
