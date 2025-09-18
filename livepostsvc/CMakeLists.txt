@@ -20,12 +20,11 @@ target_link_libraries(
   LivePostSvc PUBLIC
   Boost::program_options
   Boost::url
-#  Threads::Threads
   APIServer
   LivePostsModel
   Cookies
   jwt-cpp::jwt-cpp
-  cppcodec
+
 )
 
 get_target_property(dirs LivePostsModel INTERFACE_INCLUDE_DIRECTORIES)

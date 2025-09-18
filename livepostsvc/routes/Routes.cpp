@@ -11,7 +11,6 @@
 
 #include <jwt-cpp/jwt.h>
 #include <jwt-cpp/traits/nlohmann-json/traits.h>
-#include <cppcodec/base64_rfc4648.hpp>
 #include "cookies/parse.h"
 
 #include <memory>
@@ -21,7 +20,6 @@
 #include <chrono>
 #include <ctime>
 
-using base64 = cppcodec::base64_rfc4648;
 using json = nlohmann::json;
 using LivePostsModel::parseDate;
 using Rest::RouteHandler;
@@ -78,19 +76,19 @@ namespace Routes
     void createPost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
 
-      auto cookies{Cookies::cookie_map(req[http::field::cookie])}; // use the python RFC6265-compliant.
-      std::cout << "Cookie values" << std::endl;
-      for (const auto &[key, val] : cookies)
-      {
-        std::cout << key << " = " << val << '\n';
-      }
-
-      if (!cookies.contains("auth:sess")) {
-        return send(Rest::Response::unauthorized_request(req, "No credentials (cookies) found."));
-      }
       try {
-        std::vector<uint8_t> decoded_array = base64::decode(cookies.at("auth:sess"));
-        std::string decoded(decoded_array.begin(), decoded_array.end());
+        auto cookies{Cookies::cookie_map(req[http::field::cookie])}; // use the python RFC6265-compliant.
+        std::cout << "Cookie values" << std::endl;
+        for (const auto &[key, val] : cookies)
+        {
+          std::cout << key << " = " << val << '\n';
+        }
+
+        if (!cookies.contains("auth:sess")) {
+          return send(Rest::Response::unauthorized_request(req, "No credentials (cookies) found."));
+        }
+
+        std::string decoded = Cookies::base64_decode(cookies.at("auth:sess"));
         json auth_sess = json::parse(decoded);
     
         if (!verify_jwt("Bearer " + auth_sess.value("jwt", "empty")))

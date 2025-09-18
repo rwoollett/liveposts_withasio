@@ -70,15 +70,6 @@ FetchContent_Declare(
 set(JWT_BUILD_EXAMPLES OFF CACHE BOOL "disable building examples" FORCE)
 FetchContent_MakeAvailable(jwt-cpp)
 
-FetchContent_Declare(
-  cppcodec
-  GIT_REPOSITORY https://github.com/tplgy/cppcodec.git
-  GIT_TAG master
-)
-FetchContent_MakeAvailable(cppcodec)
-
-message(${cookies_SOURCE_DIR})
-
 target_link_libraries(LivePostsModel PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
 target_include_directories(LivePostsModel PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
 
