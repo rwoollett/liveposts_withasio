@@ -70,43 +70,57 @@ namespace Routes
       }
     }
 
+    bool authorize_request(const http::request<http::string_body> &req, SendCall &send) 
+    {
+      try {
+        auto cookies{Cookies::cookie_map(req[http::field::cookie])}; // use the python RFC6265-compliant.
+        D(std::cout << "Cookie values" << std::endl;
+        for (const auto &[key, val] : cookies)
+        {
+          std::cout << key << " = " << val << '\n';
+        })
+
+        if (!cookies.contains("auth:sess")) {
+          send(Rest::Response::unauthorized_request(req, "No credentials (cookies) found."));
+          return false;
+        }
+
+        std::string decoded = Cookies::base64_decode(cookies.at("auth:sess"));
+        json auth_sess = json::parse(decoded);
+        if (!verify_jwt("Bearer " + auth_sess.value("jwt", "empty")))
+        {
+          send(Rest::Response::unauthorized_request(req, "Unauthorized"));
+          return false;
+        }
+        
+        // Authorized
+        return true;
+        
+      } catch (const std::exception &e) 
+      {
+        json err = e.what();
+        auto msg = err.dump();
+        send(std::move(Rest::Response::bad_request(req, msg.substr(1, msg.size() - 2))));
+        return false;
+      }
+
+    }
+
     /**=============================================================== */
     /** Create post                                                    */
     /**=============================================================== */
     void createPost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
 
-      try {
-        auto cookies{Cookies::cookie_map(req[http::field::cookie])}; // use the python RFC6265-compliant.
-        std::cout << "Cookie values" << std::endl;
-        for (const auto &[key, val] : cookies)
-        {
-          std::cout << key << " = " << val << '\n';
-        }
-
-        if (!cookies.contains("auth:sess")) {
-          return send(Rest::Response::unauthorized_request(req, "No credentials (cookies) found."));
-        }
-
-        std::string decoded = Cookies::base64_decode(cookies.at("auth:sess"));
-        json auth_sess = json::parse(decoded);
-    
-        if (!verify_jwt("Bearer " + auth_sess.value("jwt", "empty")))
-        {
-          return send(Rest::Response::unauthorized_request(req, "Unauthorized"));
-        }
-        
-      } catch (const std::exception &e) 
-      {
-        json err = e.what();
-        auto msg = err.dump();
-        return send(std::move(Rest::Response::bad_request(req, msg.substr(1, msg.size() - 2))));
+      if (!authorize_request(req, send)) {
+        std::cout << "        Unauthorized\n";
+        return;
       }
-
+      std::cout << "        Authorized\n";
       // Validation check on put req body and bad request is made if not valid
       LivePostsModel::Post post;
 
-      std::cout << req.body() << std::endl;
+      D(std::cout << req.body() << std::endl;)
       try
       {
         post = json::parse(req.body());
@@ -416,6 +430,12 @@ namespace Routes
     /**=============================================================== */
     void createUser(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
+      if (!authorize_request(req, send)) {
+        std::cout << "        Unauthorized\n";
+        return;
+      }
+      std::cout << "        Authorized\n";
+
       // Validation check on put req body and bad request is made if not valid
       LivePostsModel::User user;
       try
