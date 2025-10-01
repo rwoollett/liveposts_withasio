@@ -47,7 +47,9 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(nlohmann_json)
 
 # Change 1) LivePostsModel post, tpDate, reactiosns, date optional, reactions optional on create
-# Posts and Users, userName string optional userName on post json to Post
+# Posts and Users, userName string optional userName on post json to Post. Post have live and allocated
+# live and allocated default false, live post events postCreate and postStage. PostStage with postId and live ns
+# PostStage json chk
 FetchContent_Declare(
   LivePostsModel
   GIT_REPOSITORY https://github.com/rwoollett/livepostmodel.git

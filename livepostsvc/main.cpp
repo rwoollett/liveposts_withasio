@@ -140,6 +140,10 @@ int main(int argc, char *argv[])
     restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", Routes::LivePosts::findUserByAuthId);
     restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", Routes::LivePosts::findUserById);
 
+    // NetProcessor calls to LivePost Svc
+    restserver->get("/api/v1/liveposts/stage/post", Routes::LivePosts::allocatePost);
+    restserver->put("/api/v1/liveposts/stage/post", Routes::LivePosts::stagePost);
+
     // Begin the rest server at tcp address/port ioc context in a thread pool (no. of threads in cmd arg)
     restserver->run();
 

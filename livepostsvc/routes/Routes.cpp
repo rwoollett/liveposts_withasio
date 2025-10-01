@@ -120,7 +120,7 @@ namespace Routes
       // Validation check on put req body and bad request is made if not valid
       LivePostsModel::Post post;
 
-      D(std::cout << req.body() << std::endl;)
+      std::cout << req.body() << std::endl;
       try
       {
         post = json::parse(req.body());
@@ -145,6 +145,7 @@ namespace Routes
           "INSERT INTO \"Posts\" "
           "(\"title\", \"content\", \"userId\", \"date\") VALUES ($1, $2, $3, NOW()) "
           "RETURNING id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+          "\"allocated\", \"live\", "
           "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
           ";";
 
@@ -182,28 +183,29 @@ namespace Routes
           return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
         }
 
-        // Publish GameCreateEvent subject.
+        // Publish PostCreateEvent subject.
         // If not validate newPost means this request update is unsuccessful due to no row found
         try
         {
-          //  if (LivePostsModel::Validate::Post(*newPost))
-          //  {
-          // TTTEvents::GameCreateEvent event;
-          // event.gameId = newPost->id;
-          // event.board = newPost->board;
-          // event.tpCreatedAt = newPost->tpCreatedAt;
-          // json jsonEvent = event;
+          if (LivePostsModel::Validate::Posts(*newPost))
+          {
+            LivePostsEvents::PostCreateEvent event;
+            event.id = newPost->id;
+            event.userId = newPost->userId;
+            event.title = newPost->title;
+            event.userName = newPost->userName;
+            event.live = newPost->live;
+            event.allocated = newPost->allocated;
+            json jsonEvent = event;
 
-          // /////
-          // cntLivePostMessage++;
-          // std::cout << "  Sending to publish: Subject (" << TTTEvents::SubjectNames.at(event.subject) << ")"
-          //           << " " << cntLivePostMessage << " TTT messages made. "
-          //           << std::endl;
-          // ///
-          // redisPublish->Send(
-          //     std::string(TTTEvents::SubjectNames.at(event.subject)),
-          //     jsonEvent.dump());
-          //}
+            cntLivePostMessage++;
+            std::cout << "  Sending to publish: Subject (" << LivePostsEvents::SubjectNames.at(event.subject) << ")"
+                      << " " << cntLivePostMessage << " LivePost messages made. "
+                      << std::endl;
+            redisPublish->Send(
+                std::string(LivePostsEvents::SubjectNames.at(event.subject)),
+                jsonEvent.dump());
+          }
 
           return send(std::move(Rest::Response::success_request(req, apiResult->c_str())));
         }
@@ -289,6 +291,385 @@ namespace Routes
       dbclient->asyncQuery("BEGIN", beginTransaction);
     };
 
+    /**======================================================================= */
+    /** Get the next unallocated Post Created as  (retrieve only one or none)  */
+    /**======================================================================= */
+    void allocatePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
+    {
+
+      auto query = "SELECT "
+                   "\"Posts\".\"id\", \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+                   "\"allocated\", \"live\", "
+                   "\"Users\".\"name\" AS \"userName\" "
+                   "FROM \"Posts\" LEFT JOIN \"Users\" ON "
+                   "\"Posts\".\"userId\"=\"Users\".\"id\" "
+                   "WHERE \"Posts\".\"allocated\"='f' "
+                   ";";
+
+      auto updateSql =
+          "UPDATE \"Posts\" "
+          "SET \"allocated\"=$1 "
+          "WHERE \"id\"=$2 "
+          "RETURNING id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+          "\"allocated\", \"live\", "
+          "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
+          ";";
+
+      std::cout << "AllocatePost query\n"
+                  << query << std::endl
+                  << "AllocatePost update query\n"
+                  << updateSql << std::endl;
+
+      auto paramStrings = std::make_shared<std::vector<std::string>>();
+      auto paramLengths = std::make_shared<std::vector<int>>();
+      auto paramFormats = std::make_shared<std::vector<int>>();
+      auto apiResult = std::make_shared<std::string>();
+      auto foundPost = std::make_shared<LivePostsModel::Post>();
+
+      auto endTransaction = [req, apiResult, send](PGresult *endRes)
+      {
+        if (!endRes)
+        {
+          D(std::cerr << "endTransaction Allocate Post has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        ExecStatusType resStatus = PQresultStatus(endRes);
+        if (resStatus != PGRES_COMMAND_OK)
+        {
+          json error = "COMMIT command Allocate Post execution failed: " + std::string(PQresultErrorMessage(endRes));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+        }
+
+        return send(std::move(Rest::Response::success_request(req, apiResult->c_str())));
+      };
+
+      auto paramQueryAllocatedPost = [=](PGresult *res)
+      {
+        if (!res)
+        {
+          D(std::cerr << "Query Allocate Post has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        json root;
+        root["allocatePost"] = {};
+
+        ExecStatusType resStatus = PQresultStatus(res);
+        if (resStatus != PGRES_TUPLES_OK)
+        {
+          json error = "Query Update Allocate Post execution failed: " + std::string(PQresultErrorMessage(res));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          dbclient->asyncQuery("ROLLBACK", [=](PGresult *res)
+                               {
+                                 if (!res)
+                                 {
+                                   D(std::cerr << "ROLLBACK Allocate Post has been shown as finished when null res returned." << std::endl;)
+                                   return;
+                                 }
+                                 return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+                                 //
+                               });
+
+          return;
+        }
+        int rows = PQntuples(res);
+        int cols = PQnfields(res);
+        if (rows == 0)
+        {
+          root["allocatePost"] = json::array();
+          apiResult->assign(root.dump());
+          dbclient->asyncQuery("COMMIT", endTransaction);
+          return;
+        }
+
+        try
+        {
+          // Only one row is returned
+          root["allocatePost"] = json::array();
+          root["allocatePost"].push_back(LivePostsModel::PG::Posts::fromPGRes(res, cols, 0));
+        }
+        catch (const std::string &e)
+        {
+          return send(std::move(Rest::Response::server_error(req, e)));
+        }
+        apiResult->assign(root.dump());
+        dbclient->asyncQuery("COMMIT", endTransaction);
+      };
+
+      auto queryAllocatedPost = [=](PGresult *res)
+      {
+        if (!res)
+        {
+          D(std::cerr << "Query Allocate Post has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        json root;
+        root["allocatePost"] = {};
+
+        ExecStatusType resStatus = PQresultStatus(res);
+        if (resStatus != PGRES_TUPLES_OK)
+        {
+          json error = "Query Allocate Post execution failed: " + std::string(PQresultErrorMessage(res));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          dbclient->asyncQuery("ROLLBACK", [=](PGresult *res)
+                               {
+                                 if (!res)
+                                 {
+                                   D(std::cerr << "ROLLBACK Allocate Post Query has been shown as finished when null res returned." << std::endl;)
+                                   return;
+                                 }
+                                 return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+                                 //
+                               });
+
+          return;
+        }
+        int rows = PQntuples(res);
+        int cols = PQnfields(res);
+        if (rows == 0)
+        {
+          root["allocatePost"] = json::array();
+          apiResult->assign(root.dump());
+          dbclient->asyncQuery("COMMIT", endTransaction);
+          return;
+        }
+
+        try
+        {
+          // Only one row is returned
+          root["allocatePost"] = json::array();
+          *foundPost = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
+          root["allocatePost"].push_back(*foundPost);
+        }
+        catch (const std::string &e)
+        {
+          return send(std::move(Rest::Response::server_error(req, e)));
+        }
+        apiResult->assign(root.dump());
+        std::cout << "=====> Allocated Post query found: " << root.dump() << std::endl;
+
+        // Now before end transaction update allocated = true for foundPost in DB
+        paramStrings->push_back(std::to_string(true));
+        paramStrings->push_back(std::to_string(foundPost->id));
+        for (const auto &s : *paramStrings)
+          paramLengths->push_back(s.size());
+        for (const auto &s : *paramStrings)
+          paramFormats->push_back(0);
+
+        dbclient->asyncParamQuery(updateSql, *paramStrings, *paramLengths, *paramFormats, paramQueryAllocatedPost);
+      };
+
+      auto beginTransaction = [=](PGresult *beginRes)
+      {
+        if (!beginRes)
+        {
+          D(std::cerr << "beginTransaction Allocate Post Query has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        ExecStatusType resStatus = PQresultStatus(beginRes);
+        if (resStatus != PGRES_COMMAND_OK)
+        {
+          json error = "Begin command Allocate Post Query execution failed: " + std::string(PQresultErrorMessage(beginRes));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+        }
+
+        dbclient->asyncQuery(query, queryAllocatedPost);
+      };
+
+      dbclient->asyncQuery("BEGIN", beginTransaction);
+    };
+
+    /**====================================================================== */
+    /** Update Post as live true (means the file is created at www work folder
+    /**====================================================================== */
+    void stagePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
+    {
+      // Validation check on put req body and bad request is made if not valid
+      LivePostsModel::PostStage stagePostInput;
+      try
+      {
+        stagePostInput = json::parse(req.body());
+      }
+      catch (json::exception &e)
+      {
+        json err = e.what();
+        auto msg = err.dump();
+        return send(std::move(Rest::Response::bad_request(req, msg.substr(1, msg.size() - 2))));
+      }
+      catch (const std::string &e)
+      {
+        return send(std::move(Rest::Response::bad_request(req, e)));
+      }
+
+      if (!LivePostsModel::Validate::PostStage(stagePostInput))
+      {
+        return send(std::move(Rest::Response::bad_request(req, "Stage Post input is not having valid data.")));
+      }
+
+      auto sql =
+          "UPDATE \"Posts\" "
+          "SET \"live\"=$1 WHERE \"id\"=$2 "
+          "RETURNING id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+          "\"allocated\", \"live\", "
+          "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
+          ";";
+
+      auto paramStrings = std::make_shared<std::vector<std::string>>();
+      paramStrings->push_back(std::to_string(stagePostInput.live));
+      paramStrings->push_back(std::to_string(stagePostInput.postId));
+
+      auto paramLengths = std::make_shared<std::vector<int>>();
+      for (const auto &s : *paramStrings)
+        paramLengths->push_back(s.size());
+
+      auto paramFormats = std::make_shared<std::vector<int>>();
+      for (const auto &s : *paramStrings)
+        paramFormats->push_back(0);
+
+      auto apiResult = std::make_shared<std::string>();
+      // Place holder for the event
+      auto updatedPostStage = std::make_shared<LivePostsModel::Post>();
+
+      auto endTransaction = [redisPublish, updatedPostStage, stagePostInput, req, apiResult, send](PGresult *endRes)
+      {
+        if (!endRes)
+        {
+          D(std::cerr << "endTransaction Stage Post has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        ExecStatusType resStatus = PQresultStatus(endRes);
+        if (resStatus != PGRES_COMMAND_OK)
+        {
+          json error = "COMMIT command Stage Post execution failed: " + std::string(PQresultErrorMessage(endRes));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+        }
+
+        // Publish PostStageEvent subject.
+        // If not validate updatedPostStage means this request update is unsuccessful due to no row found
+        try
+        {
+          if (LivePostsModel::Validate::Posts(*updatedPostStage))
+          {
+            LivePostsEvents::PostStageEvent event;
+            event.id = updatedPostStage->id;
+            event.slug = std::to_string(updatedPostStage->id) + updatedPostStage->title;
+            json jsonEvent = event;
+
+            /////
+            cntLivePostMessage++;
+            std::cout << "  Sending to publish: Subject (" << LivePostsEvents::SubjectNames.at(event.subject) << ")"
+                      << " " << cntLivePostMessage << " LivePosts messages made. "
+                      << std::endl;
+            ///
+            redisPublish->Send(
+                std::string(LivePostsEvents::SubjectNames.at(event.subject)),
+                jsonEvent.dump());
+          }
+
+          return send(std::move(Rest::Response::success_request(req, apiResult->c_str())));
+        }
+        catch (json::exception &e)
+        {
+          json err = e.what();
+          auto msg = err.dump();
+          return send(std::move(Rest::Response::bad_request(req, msg.substr(1, msg.size() - 2))));
+        }
+        catch (const std::string &e)
+        {
+          return send(std::move(Rest::Response::server_error(req, e)));
+        }
+      };
+
+      auto paramQueryPostStageUpdate = [=](PGresult *res)
+      {
+        if (!res)
+        {
+          D(std::cerr << "Query Stage Post Update has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        json root;
+        root["stagePost"] = {};
+
+        ExecStatusType resStatus = PQresultStatus(res);
+        if (resStatus != PGRES_TUPLES_OK)
+        {
+          json error = "Query Stage Post Update execution failed: " + std::string(PQresultErrorMessage(res));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          dbclient->asyncQuery("ROLLBACK", [=](PGresult *res)
+                               {
+                                 if (!res)
+                                 {
+                                   D(std::cerr << "ROLLBACK Stage Post Update Query has been shown as finished when null res returned." << std::endl;)
+                                   return;
+                                 }
+                                 return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+                                 //
+                               });
+
+          return;
+        }
+        int rows = PQntuples(res);
+        int cols = PQnfields(res);
+        if (rows == 0)
+        {
+          root["stagePost"] = "No rows returned from query";
+          apiResult->assign(root.dump());
+          dbclient->asyncQuery("COMMIT", endTransaction);
+          return;
+        }
+
+        try
+        {
+          // Only one row is returned
+          *updatedPostStage = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
+          root["stagePost"] = *updatedPostStage;
+        }
+        catch (const std::string &e)
+        {
+          return send(std::move(Rest::Response::server_error(req, e)));
+        }
+        apiResult->assign(root.dump());
+        dbclient->asyncQuery("COMMIT", endTransaction);
+      };
+
+      auto beginTransaction = [=](PGresult *beginRes)
+      {
+        if (!beginRes)
+        {
+          D(std::cerr << "beginTransaction Stage Post Query has been shown as finished when null res returned." << std::endl;)
+          return;
+        }
+
+        ExecStatusType resStatus = PQresultStatus(beginRes);
+        if (resStatus != PGRES_COMMAND_OK)
+        {
+          json error = "Begin command Stage Post Query execution failed: " + std::string(PQresultErrorMessage(beginRes));
+          auto msg = error.dump();
+          std::cerr << msg << std::endl;
+          return send(std::move(Rest::Response::server_error(req, msg.substr(1, msg.size() - 2))));
+        }
+
+        dbclient->asyncParamQuery(sql, *paramStrings, *paramLengths, *paramFormats, paramQueryPostStageUpdate);
+      };
+
+      dbclient->asyncQuery("BEGIN", beginTransaction);
+    };
+
+
     /**================================================================== */
     /** Get Posts                                                         */
     /**================================================================== */
@@ -297,6 +678,7 @@ namespace Routes
 
       auto query = "SELECT "
                    "\"Posts\".\"id\", \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+                   "\"allocated\", \"live\", "
                    "\"Users\".\"name\" AS \"userName\" "
                    "FROM \"Posts\" LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\""
                    ";";
@@ -308,7 +690,6 @@ namespace Routes
       auto paramLengths = std::make_shared<std::vector<int>>();
       auto paramFormats = std::make_shared<std::vector<int>>();
       auto apiResult = std::make_shared<std::string>();
-      //      auto foundMove = std::make_shared<TTTModel::PlayerMove>();
 
       auto endTransaction = [req, apiResult, send](PGresult *endRes)
       {
@@ -609,7 +990,6 @@ namespace Routes
         paramFormats->push_back(0);
 
       auto apiResult = std::make_shared<std::string>();
-      //      auto foundMove = std::make_shared<TTTModel::PlayerMove>();
 
       auto endTransaction = [req, apiResult, send](PGresult *endRes)
       {
@@ -764,7 +1144,6 @@ namespace Routes
         paramFormats->push_back(0);
 
       auto apiResult = std::make_shared<std::string>();
-      //      auto foundMove = std::make_shared<TTTModel::PlayerMove>();
 
       auto endTransaction = [req, apiResult, send](PGresult *endRes)
       {
