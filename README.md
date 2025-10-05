@@ -13,8 +13,8 @@ when a players move is processed and a new board is pushed to the clients applic
 
 ## Create a cmake build folder:
 
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -G "Unix Makefiles" . -B ./build-release
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr/local -G "Unix Makefiles" . -B ./build-debug
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/usr/local -G "Unix Makefiles" . -B ./build-release
+cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/usr/local -G "Unix Makefiles" . -B ./build-debug
 
 ## Use the built package to test:
 
