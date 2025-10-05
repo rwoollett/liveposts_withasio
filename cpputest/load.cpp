@@ -26,6 +26,7 @@ std::vector<LivePostsModel::Post> liveposts_creator(int startID, int amt)
   for (int i = startID; i < (startID + amt); i++)
   {
     LivePostsModel::Post post;
+    post.id = -1;
     post.userId = 1;
     post.userName = "Temp User at Hello co nz";
     post.content = "Their bird was, in this moment, a silly bear. They were lost without the amicable kiwi that composed their fox. A peach is an amicable crocodile. A tidy fox without sharks is truly a scorpion of willing cats. Shouting with happiness, a currant is a wise currant!";
@@ -141,11 +142,12 @@ int main(int, char **)
       std::this_thread::sleep_for(std::chrono::milliseconds(3500));
       for (int i = 50; i < 70; i++)
       {
-        json post = liveposts_list_while->at(i);
-        RestClient::Response rx = conn3.del(std::string("/api/v1/liveposts/post/complete/" + std::string(post["id"])));
+        auto post = liveposts_list_while->at(i);
+        std::cout << post.id << std::endl;
+        RestClient::Response rx = conn3.del(std::string("/api/v1/liveposts/post/complete/" + std::to_string(post.id)));
 
         std::string errs{};
-        PrintLog("del(\"" + std::string("/api/v1/liveposts/post/complete/" + std::string(post["id"])) + "\") -- ", doPrint, doPrintHeader, rx);
+        PrintLog("del(\"" + std::string("/api/v1/liveposts/post/complete/" + std::to_string(post.id)) + "\") -- ", doPrint, doPrintHeader, rx);
         json root{};
         try
         {
