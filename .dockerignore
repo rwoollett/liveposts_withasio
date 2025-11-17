@@ -8,3 +8,4 @@ api.http
 scratch.txt
 set_env.sh
 tls
+.env
