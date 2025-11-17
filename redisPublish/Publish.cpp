@@ -14,54 +14,46 @@
 #include <boost/redis/response.hpp>
 #include <boost/redis/request.hpp>
 
-// using boost::redis::error;
-// using boost::redis::generic_response;
-// using boost::redis::ignore;
-// using boost::redis::request;
-
-// using signal_set = asio::deferred_t::as_default_on_t<asio::signal_set>;
-namespace redis = boost::redis;
-
 namespace RedisPublish
 {
 
-  class Exception : public std::exception
-  {
-  protected:
-    /** Error message.
-     */
-    std::string msg_;
+  // class Exception : public std::exception
+  // {
+  // protected:
+  //   /** Error message.
+  //    */
+  //   std::string msg_;
 
-  public:
-    explicit Exception(const char *message) : msg_(message)
-    {
-    }
+  // public:
+  //   explicit Exception(const char *message) : msg_(message)
+  //   {
+  //   }
 
-    /** Constructor (C++ STL strings).
-     *  @param message The error message.
-     */
-    explicit Exception(const std::string &message) : msg_(message) {}
+  //   /** Constructor (C++ STL strings).
+  //    *  @param message The error message.
+  //    */
+  //   explicit Exception(const std::string &message) : msg_(message) {}
 
-    /** Destructor.
-     * Virtual to allow for subclassing.
-     */
-    virtual ~Exception() throw() {}
+  //   /** Destructor.
+  //    * Virtual to allow for subclassing.
+  //    */
+  //   virtual ~Exception() throw() {}
 
-    /** Returns a pointer to the (constant) error description.
-     *  @return A pointer to a const char*. The underlying memory
-     *          is in posession of the Exception object. Callers must
-     *          not attempt to free the memory.
-     */
-    virtual const char *what() const throw()
-    {
-      return msg_.c_str();
-    }
-  };
+  //   /** Returns a pointer to the (constant) error description.
+  //    *  @return A pointer to a const char*. The underlying memory
+  //    *          is in posession of the Exception object. Callers must
+  //    *          not attempt to free the memory.
+  //    */
+  //   virtual const char *what() const throw()
+  //   {
+  //     return msg_.c_str();
+  //   }
+  // };
 
   static const char *REDIS_HOST = std::getenv("REDIS_HOST");
   static const char *REDIS_PORT = std::getenv("REDIS_PORT");
-  // static const char *REDIS_CHANNEL = std::getenv("REDIS_CHANNEL");
   static const char *REDIS_PASSWORD = std::getenv("REDIS_PASSWORD");
+  static const char *REDIS_USE_SSL = std::getenv("REDIS_USE_SSL");
   static const int CONNECTION_RETRY_AMOUNT = -1;
   static const int CONNECTION_RETRY_DELAY = 3;
 
@@ -87,8 +79,35 @@ namespace RedisPublish
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT)
 
+  auto verify_certificate(bool, asio::ssl::verify_context&) -> bool
+  {
+    std::cout << "set_verify_callback" << std::endl;
+    return true;
+  }
+  // Helper to load a file into an SSL context
+  void load_certificates(asio::ssl::context& ctx,
+                        const std::string& ca_file,
+                        const std::string& cert_file,
+                        const std::string& key_file)
+  {
+    try 
+    {
+      // Load trusted CA
+      ctx.load_verify_file(ca_file);
+
+      // Load client certificate
+      ctx.use_certificate_file(cert_file, asio::ssl::context::pem);
+
+      // Load private key
+      ctx.use_private_key_file(key_file, asio::ssl::context::pem);
+    } catch(const std::exception &e) 
+    {
+      std::cerr << "Publish::load certiciates " << e.what() << std::endl;
+    }
+  }
+
   Publish::Publish() : m_ioc{2},
-                       m_conn{}, //(std::make_shared<connection>(m_ioc)),
+                       m_conn{},
                        msg_queue{},
                        m_signalStatus{0},
                        m_isConnected{0},
@@ -149,6 +168,7 @@ namespace RedisPublish
     boost::system::error_code ec;
     redis::request ping_req;
     ping_req.push("PING");
+
     co_await m_conn->async_exec(ping_req, boost::redis::ignore, asio::redirect_error(asio::deferred, ec));
     if (ec)
     {
@@ -243,6 +263,11 @@ namespace RedisPublish
     cfg.addr.host = REDIS_HOST;
     cfg.addr.port = REDIS_PORT;
     cfg.password = REDIS_PASSWORD;
+    if (std::string(REDIS_USE_SSL) == "on")
+    {
+      std::cout << "Configure ssl\n";
+      cfg.use_ssl = true;
+    }
 
     boost::asio::signal_set sig_set(ex, SIGINT, SIGTERM);
 #if defined(SIGQUIT)
@@ -256,8 +281,22 @@ namespace RedisPublish
 
     for (;;)
     {
-      // m_isConnected == 0;
-      m_conn = std::make_shared<redis::connection>(ex);
+      if (std::string(REDIS_USE_SSL) == "on")
+      {
+        asio::ssl::context ssl_ctx{asio::ssl::context::tlsv12_client};
+        ssl_ctx.set_verify_mode(asio::ssl::verify_peer);
+        load_certificates(ssl_ctx,
+                              "tls/ca.crt",    // Your self-signed CA
+                              "tls/redis.crt", // Your client certificate
+                              "tls/redis.key"  // Your private key
+            );
+        ssl_ctx.set_verify_callback(verify_certificate);
+        m_conn = std::make_shared<redis::connection>(ex, std::move(ssl_ctx));
+
+      } else {
+        m_conn = std::make_shared<redis::connection>(ex);
+
+      }
 
       m_conn->async_run(cfg, redis::logger{redis::logger::level::err}, asio::consign(asio::detached, m_conn));
 

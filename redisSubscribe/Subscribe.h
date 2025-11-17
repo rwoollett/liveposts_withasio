@@ -14,6 +14,7 @@
 #include <sstream>
 #include <mutex>
 #include <condition_variable>
+#include <stdexcept>
 
 #ifdef HAVE_ASIO
 #include <boost/asio/connect.hpp>
