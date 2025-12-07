@@ -133,14 +133,16 @@ int main(int argc, char *argv[])
     restserver->get("/api/v1/liveposts/users", Routes::LivePosts::userList);
     //restserver->get("/api/v1/posts2", Routes::LivePosts::posts);
 
-    restserver->put("/api/v1/liveposts/posts", Routes::LivePosts::createPost);
     restserver->get("/api/v1/liveposts/posts", Routes::LivePosts::fetchPosts);
 
+    // User auth req. Create user at liveposts service for the actual logged in user.
+    restserver->put("/api/v1/liveposts/posts", Routes::LivePosts::createPost);
     restserver->put("/api/v1/liveposts/users", Routes::LivePosts::createUser);
+    // TODO: these two routes needs user auth req.
     restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", Routes::LivePosts::findUserByAuthId);
     restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", Routes::LivePosts::findUserById);
 
-    // NetProcessor calls to LivePost Svc
+    // NetProcessor calls to LivePost Svc. TODO auth of authenticated NetProc user 
     restserver->get("/api/v1/liveposts/stage/post", Routes::LivePosts::allocatePost);
     restserver->put("/api/v1/liveposts/stage/post", Routes::LivePosts::stagePost);
 
