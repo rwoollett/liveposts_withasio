@@ -23,6 +23,7 @@
 using json = nlohmann::json;
 using LivePostsModel::parseDate;
 using Rest::RouteHandler;
+using jwt_traits = jwt::traits::nlohmann_json;
 
 namespace Routes
 {
@@ -30,48 +31,19 @@ namespace Routes
   namespace LivePosts
   {
 
-    bool verify_jwt(const std::string &auth_header)
+    //bool verify_jwt(const std::string &auth_header, jwt::decoded_jwt<jwt_traits> &token_jwt)
+    bool verify_jwt(const jwt::decoded_jwt<jwt_traits> &token_jwt)
     {
       auto jwt_secret_key = std::getenv("JWT_SECRET_KEY");
-      auto authorised_user = std::getenv("AUTHORISED_USER");
-      std::string keyword = "Bearer";
-      std::string token;
-      using traits = jwt::traits::nlohmann_json;
-
-      // Find the position of "Bearer"
-      size_t pos = auth_header.find(keyword);
-      if (pos != std::string::npos)
-      {
-        // Extract the token after "Bearer"
-        token = auth_header.substr(pos + keyword.length());
-
-        // Trim leading spaces (optional)
-        token.erase(0, token.find_first_not_of(" "));
-      }
-      else
-      {
-        return false;
-      }
-
       try
       {
-        auto decoded = jwt::decode<traits>(token);
-        D(std::cout << " decoded:" << decoded.get_payload() << std::endl;)
-        auto verifier = jwt::verify<traits>()
+        //token_jwt = jwt::decode<jwt_traits>(token);
+        std::cout << " token_jwt:" << token_jwt.get_payload() << std::endl;
+        auto verifier = jwt::verify<jwt_traits>()
                             .allow_algorithm(jwt::algorithm::hs256{std::string(jwt_secret_key)});
         //.with_issuer("your_issuer");
 
-        verifier.verify(decoded);
-
-        // Email from payload to match authorised user
-        auto payload = decoded.get_payload_json();
-        std::string user_allow;
-        payload.at("email").get_to(user_allow);      
-        D(std::cout << "payload email: " <<  user_allow << std::endl;)
-        if (std::string(authorised_user) != user_allow)
-        {
-          return false;
-        }
+        verifier.verify(token_jwt);
 
         return true; // Token is valid
       }
@@ -82,8 +54,9 @@ namespace Routes
       }
     }
 
-    bool authorize_request(const http::request<http::string_body> &req, SendCall &send) 
+    bool authorize_request(const http::request<http::string_body> &req, const std::string_view role, SendCall &send) 
     {
+      auto authorised_user = std::getenv("AUTHORISED_USER");
       try {
         auto cookies{Cookies::cookie_map(req[http::field::cookie])}; // use the python RFC6265-compliant.
         D(std::cout << "Cookie values" << std::endl;
@@ -99,13 +72,47 @@ namespace Routes
 
         std::string decoded = Cookies::base64_decode(cookies.at("auth:sess"));
         json auth_sess = json::parse(decoded);
-        if (!verify_jwt("Bearer " + auth_sess.value("jwt", "empty")))
+        std::string keyword = "Bearer";
+        std::string token;
+        std::string auth_header = "Bearer " + auth_sess.value("jwt", "empty");
+        // Find the position of "Bearer"
+        size_t pos = auth_header.find(keyword);
+        if (pos != std::string::npos)
+        {
+          // Extract the token after "Bearer"
+          token = auth_header.substr(pos + keyword.length());
+
+          // Trim leading spaces (optional)
+          token.erase(0, token.find_first_not_of(" "));
+        }
+        else
+        {
+          return false;
+        }
+        std::cout << "jwt token: " << token << std::endl;
+        jwt::decoded_jwt<jwt_traits> token_jwt = jwt::decode<jwt_traits>(token);
+        if (!verify_jwt(token_jwt))
         {
           send(Rest::Response::unauthorized_request(req, "Unauthorized"));
           return false;
         }
         
-        // Authorized
+        // Authenticated now authorize
+        // Email from payload to match authorised user
+        std::cout << "role for authorization: " << role << std::endl;
+        if (role == "netproc") 
+        {
+          auto payload = token_jwt.get_payload_json();
+          std::string user_allow;
+          payload.at("email").get_to(user_allow);      
+          D(std::cout << "payload email: " <<  user_allow << std::endl;)
+          if (std::string(authorised_user) != user_allow)
+          {
+            send(Rest::Response::unauthorized_request(req, "Unauthorized"));
+            return false;
+          }
+        }
+
         return true;
         
       } catch (const std::exception &e) 
@@ -124,7 +131,7 @@ namespace Routes
     void createPost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
 
-      if (!authorize_request(req, send)) {
+      if (!authorize_request(req, "*", send)) {
         std::cout << "        Unauthorized\n";
         return;
       }
@@ -308,7 +315,7 @@ namespace Routes
     /**======================================================================= */
     void allocatePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
-      if (!authorize_request(req, send)) {
+      if (!authorize_request(req, "netproc", send )) {
         std::cout << "        Unauthorized\n";
         return;
       }
@@ -510,7 +517,7 @@ namespace Routes
     /**====================================================================== */
     void stagePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
-      if (!authorize_request(req, send)) {
+      if (!authorize_request(req, "netproc", send)) {
         std::cout << "        Unauthorized\n";
         return;
       }
@@ -834,7 +841,7 @@ namespace Routes
     /**=============================================================== */
     void createUser(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
-      if (!authorize_request(req, send)) {
+      if (!authorize_request(req, "netproc", send)) {
         std::cout << "        Unauthorized\n";
         return;
       }
@@ -979,7 +986,7 @@ namespace Routes
     /**================================================================== */
     void findUserByAuthId(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
-      if (!authorize_request(req, send)) {
+      if (!authorize_request(req, "*", send)) {
         std::cout << "        Unauthorized\n";
         return;
       }
@@ -1138,7 +1145,7 @@ namespace Routes
     /**================================================================== */
     void findUserById(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
-      if (!authorize_request(req, send)) {
+      if (!authorize_request(req, "*", send)) {
         std::cout << "        Unauthorized\n";
         return;
       }
