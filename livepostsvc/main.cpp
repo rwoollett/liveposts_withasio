@@ -68,9 +68,16 @@ int main(int argc, char *argv[])
     auto apidb_host = std::getenv("APIDB_HOST");
     auto apidb_port = std::getenv("APIDB_PORT");
     auto jwt_secret_key = std::getenv("JWT_SECRET_KEY");
+    auto authorised_user = std::getenv("AUTHORISED_USER");
+
+    if (jwt_secret_key == nullptr || authorised_user == nullptr)
+    {
+      std::cout << "Require ENV variables set for JWT_SECRET_KEY and AUTHORISED_USER." << std::endl;
+      return EXIT_FAILURE;
+    }
 
     if (apidb_name == nullptr || apidb_user == nullptr || apidb_password == nullptr ||
-        apidb_host == nullptr || apidb_port == nullptr || jwt_secret_key == nullptr)
+        apidb_host == nullptr || apidb_port == nullptr)
     {
       std::cout << "Require ENV variables set for APIDB_NAME, APIDB_USER, APIDB_PASSWORD, APIDB_HOST and APIDB_PORT." << std::endl;
       return EXIT_FAILURE;
@@ -138,11 +145,10 @@ int main(int argc, char *argv[])
     // User auth req. Create user at liveposts service for the actual logged in user.
     restserver->put("/api/v1/liveposts/posts", Routes::LivePosts::createPost);
     restserver->put("/api/v1/liveposts/users", Routes::LivePosts::createUser);
-    // TODO: these two routes needs user auth req.
     restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", Routes::LivePosts::findUserByAuthId);
     restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", Routes::LivePosts::findUserById);
 
-    // NetProcessor calls to LivePost Svc. TODO auth of authenticated NetProc user 
+    // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user 
     restserver->get("/api/v1/liveposts/stage/post", Routes::LivePosts::allocatePost);
     restserver->put("/api/v1/liveposts/stage/post", Routes::LivePosts::stagePost);
 

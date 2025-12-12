@@ -33,6 +33,7 @@ namespace Routes
     bool verify_jwt(const std::string &auth_header)
     {
       auto jwt_secret_key = std::getenv("JWT_SECRET_KEY");
+      auto authorised_user = std::getenv("AUTHORISED_USER");
       std::string keyword = "Bearer";
       std::string token;
       using traits = jwt::traits::nlohmann_json;
@@ -61,6 +62,17 @@ namespace Routes
         //.with_issuer("your_issuer");
 
         verifier.verify(decoded);
+
+        // Email from payload to match authorised user
+        auto payload = decoded.get_payload_json();
+        std::string user_allow;
+        payload.at("email").get_to(user_allow);      
+        D(std::cout << "payload email: " <<  user_allow << std::endl;)
+        if (std::string(authorised_user) != user_allow)
+        {
+          return false;
+        }
+
         return true; // Token is valid
       }
       catch (const std::exception &e)
@@ -296,6 +308,11 @@ namespace Routes
     /**======================================================================= */
     void allocatePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
+      if (!authorize_request(req, send)) {
+        std::cout << "        Unauthorized\n";
+        return;
+      }
+      std::cout << "        Authorized\n";
 
       auto query = "SELECT "
                    "\"Posts\".\"id\", \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
@@ -493,6 +510,12 @@ namespace Routes
     /**====================================================================== */
     void stagePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
+      if (!authorize_request(req, send)) {
+        std::cout << "        Unauthorized\n";
+        return;
+      }
+      std::cout << "        Authorized\n";
+
       // Validation check on put req body and bad request is made if not valid
       LivePostsModel::PostStage stagePostInput;
       try
@@ -956,8 +979,13 @@ namespace Routes
     /**================================================================== */
     void findUserByAuthId(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
-      // Need to get the route param value
+      if (!authorize_request(req, send)) {
+        std::cout << "        Unauthorized\n";
+        return;
+      }
+      std::cout << "        Authorized\n";
 
+      // Need to get the route param value
       auto params = sess->getReqUrlParameters(); // The FROM and TO in the request url
       auto [route_url, query_params] = RouteHandler::parse_query_params(std::string(req.target()));
       for (const auto &[key, value] : query_params)
@@ -1110,8 +1138,13 @@ namespace Routes
     /**================================================================== */
     void findUserById(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
-      // Need to get the route param value
+      if (!authorize_request(req, send)) {
+        std::cout << "        Unauthorized\n";
+        return;
+      }
+      std::cout << "        Authorized\n";
 
+      // Need to get the route param value
       auto params = sess->getReqUrlParameters(); // The FROM and TO in the request url
       auto [route_url, query_params] = RouteHandler::parse_query_params(std::string(req.target()));
       for (const auto &[key, value] : query_params)
