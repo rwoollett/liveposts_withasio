@@ -77,7 +77,13 @@ target_link_libraries(LivePostsModel PUBLIC nlohmann_json::nlohmann_json ${LIBPQ
 target_include_directories(LivePostsModel PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
 
 add_subdirectory(apiserver)
-target_link_libraries(APIServer PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
+target_link_libraries(APIServer PUBLIC
+  nlohmann_json::nlohmann_json 
+  ${LIBPQ_LIBRARIES}
+  Cookies
+  jwt-cpp::jwt-cpp
+)
+target_include_directories(APIServer PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
 
 add_subdirectory(redisSubscribe)
 

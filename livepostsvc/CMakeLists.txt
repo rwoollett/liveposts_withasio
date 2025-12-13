@@ -22,9 +22,6 @@ target_link_libraries(
   Boost::url
   APIServer
   LivePostsModel
-  Cookies
-  jwt-cpp::jwt-cpp
-
 )
 
 get_target_property(dirs LivePostsModel INTERFACE_INCLUDE_DIRECTORIES)
