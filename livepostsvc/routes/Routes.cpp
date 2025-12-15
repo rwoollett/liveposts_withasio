@@ -843,7 +843,7 @@ namespace Routes
     /**=============================================================== */
     void createUser(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
-      if (!authorize_request(req, "netproc", send)) {
+      if (!authorize_request(req, "*", send)) {
         std::cout << "        Unauthorized\n";
         return;
       }
