@@ -135,22 +135,20 @@ int main(int argc, char *argv[])
         doc_root,
         std::make_shared<RedisPublish::Sender>(redisPublisher));
 
-    restserver->get("/health", Routes::LivePosts::healthCheck);
-    restserver->get("/api/v1/liveposts/homepage", Routes::LivePosts::homePage);
-    restserver->get("/api/v1/liveposts/users", Routes::LivePosts::userList);
-    //restserver->get("/api/v1/posts2", Routes::LivePosts::posts);
-
-    restserver->get("/api/v1/liveposts/posts", Routes::LivePosts::fetchPosts);
+    restserver->get("/health", "", Routes::LivePosts::healthCheck);
+    restserver->get("/api/v1/liveposts/homepage", "", Routes::LivePosts::homePage);
+    restserver->get("/api/v1/liveposts/users", "", Routes::LivePosts::userList);
+    restserver->get("/api/v1/liveposts/posts", "", Routes::LivePosts::fetchPosts);
 
     // User auth req. Create user at liveposts service for the actual logged in user.
-    restserver->put("/api/v1/liveposts/posts", Routes::LivePosts::createPost);
-    restserver->put("/api/v1/liveposts/users", Routes::LivePosts::createUser);
-    restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", Routes::LivePosts::findUserByAuthId);
-    restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", Routes::LivePosts::findUserById);
+    restserver->put("/api/v1/liveposts/posts", "*", Routes::LivePosts::createPost);
+    restserver->put("/api/v1/liveposts/users", "*", Routes::LivePosts::createUser);
+    restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Routes::LivePosts::findUserByAuthId);
+    restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", "*", Routes::LivePosts::findUserById);
 
     // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user 
-    restserver->get("/api/v1/liveposts/stage/post", Routes::LivePosts::allocatePost);
-    restserver->put("/api/v1/liveposts/stage/post", Routes::LivePosts::stagePost);
+    restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost);
+    restserver->put("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::stagePost);
 
     // Begin the rest server at tcp address/port ioc context in a thread pool (no. of threads in cmd arg)
     restserver->run();
