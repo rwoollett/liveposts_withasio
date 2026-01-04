@@ -1,6 +1,3 @@
 [submodule "apiserver"]
 	path = apiserver
 	url = git@github.com:rwoollett/apiserver.git
-[submodule "posts-vite-app"]
-	path = posts-vite-app
-	url = git@github.com:rwoollett/posts-vite-app.git
