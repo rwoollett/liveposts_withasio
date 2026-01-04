@@ -4,7 +4,11 @@
 FROM debian:12.12 AS livepostsvc_base
 
 RUN apt update -y;  
-RUN apt install -y curl openssl libssl-dev zlib1g-dev libpq-dev python3 python3-pybind11 python3-dev;
+ARG version=v22.21.1
+RUN apt install -y curl openssl libssl-dev zlib1g-dev libpq-dev python3 python3-pybind11 python3-dev 
+    # && curl -fsSL https://nodejs.org/dist/$version/node-$version-linux-x64.tar.gz -o node.tar.gz \
+    # && tar -xzvf node.tar.gz && rm node.tar.gz \
+    # && echo "export PATH=$PATH:/node-$version-linux-x64/bin" >> /root/.bashrc
 
 FROM livepostsvc_base AS livepostsvc_boost
 
@@ -40,6 +44,12 @@ RUN strip /usr/local/bin/LivePostSvc
 FROM livepostsvc_base AS livepostsvc_runtime
 
 COPY --from=livepostsvc_builder /usr/local/bin /usr/local/bin
+#COPY --from=livepostsvc_builder /usr/src/posts-vite-app /usr/src/posts-vite-app
+# WORKDIR /usr/src
+# ARG version=v22.21.1
+# RUN cd posts-vite-app; \
+#     export PATH=$PATH:/node-$version-linux-x64/bin; \
+#     npm install; 
 
 EXPOSE 3011
 

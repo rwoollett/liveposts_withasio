@@ -8,6 +8,19 @@ The API also has websocket for subscription to events made from the API for even
 when a players move is processed and a new board is pushed to the clients application interface.
 
 <br/>
+## Api Server
+Dependencie on git repo apiserver as a submodule:
+```
+ git submodule add git@github.com:rwoollett/apiserver.git
+```
+## Post Static generation
+Dependency on git repo posts-vite-app as a submodule
+```
+ git submodule add git@github.com:rwoollett/posts-vite-app.git
+```
+This is built in the docker image. Using npm install in the subfolder post-vite-app is /usr/src folder
+
+<br/>
 
 ## CMake builder
 
