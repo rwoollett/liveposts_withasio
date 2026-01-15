@@ -117,3 +117,4 @@ Makefile.in
 /cmake-build-release/
 scratch.txt
 tls
+latest

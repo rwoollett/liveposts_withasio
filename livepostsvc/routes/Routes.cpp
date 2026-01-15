@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 #include "livepostsmodel/model.h"
 #include "livepostsmodel/pq.h"
+#include "../prerender/Prerender.h"
 
 #include <memory>
 #include <string>
@@ -15,8 +16,6 @@
 #include <iomanip>
 #include <chrono>
 #include <ctime>
-#include <unistd.h>
-#include <sys/wait.h>
 
 using json = nlohmann::json;
 using LivePostsModel::parseDate;
@@ -27,56 +26,6 @@ namespace Routes
 
   namespace LivePosts
   {
-
-
-  void prerenderPost(const std::string& slug, const std::string& json) {
-      int pipefd[2];
-      pipe(pipefd);
-
-      pid_t pid = fork();
-
-      std::cout << "Process child: " << pid << std::endl;
-      if (pid == 0) {
-          // Child process
-          std::cout << "Process child piping " << pid << std::endl;
-          close(pipefd[1]);              // close write end
-          dup2(pipefd[0], STDIN_FILENO); // replace stdin with pipe
-          close(pipefd[0]);
-
-          char* argv[] = {
-              const_cast<char*>("node"),
-              const_cast<char*>("/usr/src/posts-vite-app/scripts/prerenderhydrate.mjs"),
-              nullptr
-          };
-
-          // No need for env vars unless you want them
-          std::string slugEnv = "POST_SLUG=" + slug;
-          char* envp[] = { const_cast<char*>(slugEnv.c_str()), nullptr };
-          execve("/node-v22.21.1-linux-x64/bin/node", argv, envp);
-
-          //execve("/usr/bin/node", argv, environ);
-          _exit(1);
-      }
-      std::cout << "Process child clsing " << pid << std::endl;
-
-      // Parent process
-      close(pipefd[0]); // close read end
-
-      // Build JSON payload
-      std::string payload = "{\"slug\":\"" + slug + "\",\"post\":" + json + "}";
-      std::cout << "Payload " << payload << std::endl;
-
-      // Write JSON to child's stdin
-      write(pipefd[1], payload.c_str(), payload.size());
-      close(pipefd[1]); // signal EOF
-
-      // Wait for child to finish
-      int status;
-      waitpid(pid, &status, 0);
-      std::cout << "Payload sent and pipe lcose " << payload << std::endl;
-
-  }
-
 
     /**=============================================================== */
     /** Create post                                                    */
@@ -528,9 +477,16 @@ namespace Routes
         {
           if (LivePostsModel::Validate::Posts(*updatedPostStage))
           {
+            json jsonPost = *updatedPostStage;    
+            auto slug = std::to_string(updatedPostStage->id);// + updatedPostStage->title;
+            // just to check long run and other service urls work asyncstd::this_thread::sleep_for(std::chrono::seconds(10));
+            Prerender::prerenderPost(slug, jsonPost.dump());          
+      
+
+
             LivePostsEvents::PostStageEvent event;
             event.id = updatedPostStage->id;
-            event.slug = std::to_string(updatedPostStage->id) + updatedPostStage->title;
+            event.slug = slug;
             json jsonEvent = event;
 
             /////
@@ -543,8 +499,7 @@ namespace Routes
                 std::string(LivePostsEvents::SubjectNames.at(event.subject)),
                 jsonEvent.dump());
 
-            json jsonPost = *updatedPostStage;    
-            prerenderPost(event.slug, jsonPost.dump());                
+
           }
 
           return send(std::move(Rest::Response::success_request(req, apiResult->c_str())));
@@ -553,11 +508,18 @@ namespace Routes
         {
           json err = e.what();
           auto msg = err.dump();
+          std::cout << "jsonexpert:" << msg << std::endl;
           return send(std::move(Rest::Response::bad_request(req, msg.substr(1, msg.size() - 2))));
         }
         catch (const std::string &e)
         {
           return send(std::move(Rest::Response::server_error(req, e)));
+        }
+        catch (const std::exception &e)
+        {
+          std::cout << "stdexcpert:" << e.what() << std::endl;
+          // and could ema to re publish abd roolback the transcation
+          return send(std::move(Rest::Response::server_error(req, e.what())));
         }
       };
 
@@ -606,11 +568,14 @@ namespace Routes
           // Only one row is returned
           *updatedPostStage = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
           root["stagePost"] = *updatedPostStage;
+
+          
         }
         catch (const std::string &e)
         {
           return send(std::move(Rest::Response::server_error(req, e)));
         }
+
         apiResult->assign(root.dump());
         dbclient->asyncQuery("COMMIT", endTransaction);
       };

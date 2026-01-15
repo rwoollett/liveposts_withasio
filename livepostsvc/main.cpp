@@ -102,6 +102,15 @@ int main(int argc, char *argv[])
       exit(1);
     }
 
+    const char *node_path = std::getenv("NODE_PATH");
+    const char *prerender_script = std::getenv("PRERENDER_SCRIPT");
+
+    if (!(node_path && prerender_script))
+    {
+      std::cerr << "Environment variables NODE_PATH or PRERENDER_SCRIPT are not set." << std::endl;
+      exit(1);
+    }
+
     po::variables_map vm = parse_args(argc, argv);
     if (vm.count("help"))
       return 0;
