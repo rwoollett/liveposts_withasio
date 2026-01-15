@@ -115,7 +115,7 @@ namespace Prerender
         return result;
     }
 
-    void prerenderPost(const std::string& slug, const std::string& jsonData) {
+    void prerenderPost(const std::string& pagefolder, const std::string& jsonData) {
         int pipe_in[2];   // parent -> child
         int pipe_out[2];  // child -> parent
 
@@ -167,8 +167,8 @@ namespace Prerender
                 nullptr
             };
 
-            std::string slugEnv = "POST_SLUG=" + slug;
-            char* envp[] = { const_cast<char*>(slugEnv.c_str()), nullptr };
+            std::string pagefolderEnv = "PAGE_FOLDER=" + pagefolder;
+            char* envp[] = { const_cast<char*>(pagefolderEnv.c_str()), nullptr };
 
             execve(NODE_PATH, argv, envp);
 
@@ -183,7 +183,7 @@ namespace Prerender
         close(pipe_out[1]);  // parent reads only
 
         // Build payload
-        std::string payload = "{\"slug\":\"" + slug + "\",\"post\":" + jsonData + "}";
+        std::string payload = "{\"pagefolder\":\"" + pagefolder + "\",\"pagedata\":" + jsonData + "}";
 
         // Write full payload
         if (!write_all(pipe_in[1], payload.c_str(), payload.size())) {
