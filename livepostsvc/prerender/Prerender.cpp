@@ -17,18 +17,6 @@ namespace Prerender
     static const char *NODE_PATH = std::getenv("NODE_PATH");
     static const char *PRERENDER_SCRIPT = std::getenv("PRERENDER_SCRIPT");
 
-    // parse_prerender_result
-    // PrerenderResult parse_prerender_result(const std::string &output) 
-    // { 
-    //   json j = json::parse(output); 
-    //   PrerenderResult r; 
-    //   r.ok = j.at("ok").get<bool>(); 
-    //   r.route = j.at("route").get<std::string>(); 
-    //   r.finalDir = j.at("outputDir").get<std::string>(); 
-    //   r.stagingDir = j.at("stagingDir").get<std::string>(); 
-    //   return r; 
-    // }
-
     void atomic_folder_swap(const fs::path& stagingDir,
                             const fs::path& finalDir,
                             const fs::path& backupDir) {
@@ -115,7 +103,7 @@ namespace Prerender
         return result;
     }
 
-    void prerenderPost(const std::string& pagefolder, const std::string& jsonData) {
+    void prerenderPost(const std::string& jsonData) {
         int pipe_in[2];   // parent -> child
         int pipe_out[2];  // child -> parent
 
@@ -167,7 +155,7 @@ namespace Prerender
                 nullptr
             };
 
-            std::string pagefolderEnv = "PAGE_FOLDER=" + pagefolder;
+            std::string pagefolderEnv = "PAGE_FOLDER=";// + pagefolder;
             char* envp[] = { const_cast<char*>(pagefolderEnv.c_str()), nullptr };
 
             execve(NODE_PATH, argv, envp);
@@ -183,7 +171,8 @@ namespace Prerender
         close(pipe_out[1]);  // parent reads only
 
         // Build payload
-        std::string payload = "{\"pagefolder\":\"" + pagefolder + "\",\"pagedata\":" + jsonData + "}";
+        //std::string payload = "{\"pagefolder\":\"" + pagefolder + "\",\"pagedata\":" + jsonData + "}";
+        std::string payload = "{\"pagedata\":" + jsonData + "}";
 
         // Write full payload
         if (!write_all(pipe_in[1], payload.c_str(), payload.size())) {
@@ -208,11 +197,20 @@ namespace Prerender
 
         if (output.empty()) {
             std::cerr << "No data received from prerender process\n";
+            throw std::string("No data received from prerender process");
         }
 
         // Parse JSON result with serialized nholman json from_json()
-        PrerenderResult result = json::parse(output);
+        PipeResponse<PrerenderResult> v;
+        json responseJson = json::parse(output);
+        v = response<PrerenderResult>(responseJson);
+        if (std::holds_alternative<PipeError>(v))
+        {
+          auto error = std::get<PipeError>(v);
+          throw std::string(error.message);
+        }
 
+        PrerenderResult result = std::get<PrerenderResult>(v);
         // Wait for child
         int status;
         waitpid(pid, &status, 0);
@@ -221,6 +219,7 @@ namespace Prerender
         swap_single_post(result);
         std::cout << "prerenderPost result: " << std::endl
                   << "ok " << result.ok << std::endl
+                  << "slug " << result.slug << std::endl
                   << "route " << result.route << std::endl
                   << "finalDir " << result.finalDir << std::endl
                   << "stagingDir " << result.stagingDir << std::endl

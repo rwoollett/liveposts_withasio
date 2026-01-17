@@ -9,6 +9,7 @@
 #include "livepostsmodel/model.h"
 #include "livepostsmodel/pq.h"
 #include "../prerender/Prerender.h"
+#include "slugger.h"
 
 #include <memory>
 #include <string>
@@ -430,6 +431,11 @@ namespace Routes
         return send(std::move(Rest::Response::bad_request(req, "Stage Post input is not having valid data.")));
       }
 
+      std::string title = "How to Build a Unified Static Asset Pipeline"; 
+      std::string key = "1"; 
+      std::string slug = slugger::make_slug(title, key, 30); 
+      std::cout << slug << "\n";
+      
       auto sql =
           "UPDATE \"Posts\" "
           "SET \"live\"=$1 WHERE \"id\"=$2 "
@@ -477,16 +483,9 @@ namespace Routes
         {
           if (LivePostsModel::Validate::Posts(*updatedPostStage))
           {
-            json jsonPost = *updatedPostStage;    
-            auto slug = std::to_string(updatedPostStage->id);// + updatedPostStage->title;
-            // just to check long run and other service urls work asyncstd::this_thread::sleep_for(std::chrono::seconds(10));
-            Prerender::prerenderPost(slug, jsonPost.dump());          
-      
-
-
             LivePostsEvents::PostStageEvent event;
             event.id = updatedPostStage->id;
-            event.slug = slug;
+            event.slug = "slug";
             json jsonEvent = event;
 
             /////
@@ -567,6 +566,15 @@ namespace Routes
         {
           // Only one row is returned
           *updatedPostStage = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
+
+
+          json jsonPost = *updatedPostStage;    
+          //jsonPost.erase("id");
+          jsonPost["slug"] = slug;
+          //auto slug = std::to_string(updatedPostStage->id);// + updatedPostStage->title;
+          // just to check long run and other service urls work asyncstd::this_thread::sleep_for(std::chrono::seconds(10));
+          Prerender::prerenderPost(jsonPost.dump());          
+
           root["stagePost"] = *updatedPostStage;
 
           
@@ -574,6 +582,12 @@ namespace Routes
         catch (const std::string &e)
         {
           return send(std::move(Rest::Response::server_error(req, e)));
+        }
+        catch (const std::exception &e)
+        {
+          std::cout << "stdexcpert:" << e.what() << std::endl;
+          // and could ema to re publish abd roolback the transcation
+          return send(std::move(Rest::Response::server_error(req, e.what())));
         }
 
         apiResult->assign(root.dump());

@@ -11,12 +11,107 @@
 #include "routes/Routes.h"
 #include "../redisPublish/Publish.h" // RedisPublish class
 #include <boost/redis/src.hpp>       // boost redis implementation
+#include <filesystem>
+#include <iostream>
+#include <system_error>
+#include <unistd.h>
 
 namespace net = boost::asio;      // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
 using Rest::RestServer;
 namespace po = boost::program_options;
 using boost::asio::signal_set;
+namespace fs = std::filesystem;
+
+static bool check_node_path(const char* value) {
+    std::cout << "Checking NODE_PATH: ";
+
+    if (!value || value[0] == '\0') {
+        std::cout << "❌ NOT SET\n";
+        return false;
+    }
+
+    fs::path p(value);
+    std::error_code ec;
+
+    if (!fs::exists(p, ec)) {
+        std::cout << "❌ DOES NOT EXIST: " << p << "\n";
+        return false;
+    }
+
+    if (!fs::is_regular_file(p, ec)) {
+        std::cout << "❌ NOT A FILE: " << p << "\n";
+        return false;
+    }
+
+    auto perms = fs::status(p, ec).permissions();
+    bool executable =
+        (perms & fs::perms::owner_exec) != fs::perms::none ||
+        (perms & fs::perms::group_exec) != fs::perms::none ||
+        (perms & fs::perms::others_exec) != fs::perms::none;
+
+    if (!executable) {
+        std::cout << "❌ NOT EXECUTABLE: " << p << "\n";
+        return false;
+    }
+
+    std::cout << "OK\n";
+    std::cout << "  Path: " << p << "\n";
+    std::cout << "  Executable: yes\n";
+    return true;
+}
+
+static bool check_prerender_script(const char* value) {
+    std::cout << "Checking PRERENDER_SCRIPT: ";
+
+    if (!value || value[0] == '\0') {
+        std::cout << "❌ NOT SET\n";
+        return false;
+    }
+
+    fs::path p(value);
+    std::error_code ec;
+
+    if (!fs::exists(p, ec)) {
+        std::cout << "❌ DOES NOT EXIST: " << p << "\n";
+        return false;
+    }
+
+    if (!fs::is_regular_file(p, ec)) {
+        std::cout << "❌ NOT A FILE: " << p << "\n";
+        return false;
+    }
+
+    auto perms = fs::status(p, ec).permissions();
+    bool readable =
+        (perms & fs::perms::owner_read) != fs::perms::none ||
+        (perms & fs::perms::group_read) != fs::perms::none ||
+        (perms & fs::perms::others_read) != fs::perms::none;
+
+    if (!readable) {
+        std::cout << "❌ NOT READABLE: " << p << "\n";
+        return false;
+    }
+
+    std::cout << "OK\n";
+    std::cout << "  Path: " << p << "\n";
+    std::cout << "  Readable: yes\n";
+    return true;
+}
+
+void prerenderSelfTest() {
+    std::cout << "=== Prerender Startup Self‑Test ===\n";
+
+    bool ok1 = check_node_path(std::getenv("NODE_PATH"));
+    bool ok2 = check_prerender_script(std::getenv("PRERENDER_SCRIPT"));
+
+    if (!ok1 || !ok2) {
+        std::cout << "❌ Self‑test FAILED — prerendering disabled\n";
+        throw std::runtime_error("Prerender self‑test failed");
+    }
+
+    std::cout << "✅ Self‑test PASSED — prerender system ready\n";
+}
 
 po::variables_map parse_args(int &argc, char *argv[])
 {
@@ -69,6 +164,13 @@ int main(int argc, char *argv[])
     auto apidb_port = std::getenv("APIDB_PORT");
     auto jwt_secret_key = std::getenv("JWT_SECRET_KEY");
     auto authorised_user = std::getenv("AUTHORISED_USER");
+    const char *node_path = std::getenv("NODE_PATH");
+    const char *prerender_script = std::getenv("PRERENDER_SCRIPT");
+    const char *redis_host = std::getenv("REDIS_HOST");
+    const char *redis_port = std::getenv("REDIS_PORT");
+    const char *redis_channel = std::getenv("REDIS_CHANNEL");
+    const char *redis_password = std::getenv("REDIS_PASSWORD");
+
 
     if (jwt_secret_key == nullptr || authorised_user == nullptr)
     {
@@ -82,7 +184,7 @@ int main(int argc, char *argv[])
       std::cout << "Require ENV variables set for APIDB_NAME, APIDB_USER, APIDB_PASSWORD, APIDB_HOST and APIDB_PORT." << std::endl;
       return EXIT_FAILURE;
     }
-    // check sanity of port string and value
+
     if (std::atoi(apidb_port) > std::numeric_limits<uint16_t>::max())
     {
       std::cout << "apidb_PORT " << apidb_port << " is out of range." << std::endl;
@@ -90,20 +192,11 @@ int main(int argc, char *argv[])
     }
     auto dbport = static_cast<uint16_t>(std::atoi(apidb_port));
 
-    // Check all environment variables
-    const char *redis_host = std::getenv("REDIS_HOST");
-    const char *redis_port = std::getenv("REDIS_PORT");
-    const char *redis_channel = std::getenv("REDIS_CHANNEL");
-    const char *redis_password = std::getenv("REDIS_PASSWORD");
-
     if (!(redis_host && redis_port && redis_password && redis_channel))
     {
       std::cerr << "Environment variables REDIS_CHANNEL, REDIS_HOST, REDIS_PORT or REDIS_PASSWORD are not set." << std::endl;
       exit(1);
     }
-
-    const char *node_path = std::getenv("NODE_PATH");
-    const char *prerender_script = std::getenv("PRERENDER_SCRIPT");
 
     if (!(node_path && prerender_script))
     {
@@ -122,6 +215,15 @@ int main(int argc, char *argv[])
     std::cout << "Listening on " << address << ":" << port << " [Threads:" << threads << "]" << std::endl;
     std::cout << "Document root: " << *doc_root << std::endl;
 
+    try 
+    { 
+      prerenderSelfTest(); 
+    } 
+    catch (const std::exception& e) 
+    { 
+      std::cerr << "Startup error: " << e.what() << "\n"; 
+      return 1; 
+    }
     // std::unordered_map<std::string, std::string> cookies;
     // // Display parsed cookies
     // cookies = Cookies::cookie_map("username=JohnDoe; sessionid=12345;");
