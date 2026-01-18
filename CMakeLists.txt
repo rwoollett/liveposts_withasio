@@ -50,7 +50,7 @@ FetchContent_MakeAvailable(nlohmann_json)
 # Posts and Users, userName string optional userName on post json to Post. Post have live and allocated
 # live and allocated default false, live post events postCreate and postStage. PostStage with postId and live ns
 # PostStage json chk
-# Add service name to subjects
+# Add service name to subjects. Add title to PostStage and slug to Post
 FetchContent_Declare(
   LivePostsModel
   GIT_REPOSITORY https://github.com/rwoollett/livepostmodel.git

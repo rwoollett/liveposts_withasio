@@ -60,7 +60,7 @@ namespace Routes
       auto sql =
           "INSERT INTO \"Posts\" "
           "(\"title\", \"content\", \"userId\", \"date\") VALUES ($1, $2, $3, NOW()) "
-          "RETURNING id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+          "RETURNING id, \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
           "\"allocated\", \"live\", "
           "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
           ";";
@@ -213,7 +213,7 @@ namespace Routes
     void allocatePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
       auto query = "SELECT "
-                   "\"Posts\".\"id\", \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+                   "\"Posts\".\"id\", \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
                    "\"allocated\", \"live\", "
                    "\"Users\".\"name\" AS \"userName\" "
                    "FROM \"Posts\" LEFT JOIN \"Users\" ON "
@@ -225,7 +225,7 @@ namespace Routes
           "UPDATE \"Posts\" "
           "SET \"allocated\"=$1 "
           "WHERE \"id\"=$2 "
-          "RETURNING id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+          "RETURNING id, \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
           "\"allocated\", \"live\", "
           "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
           ";";
@@ -431,21 +431,24 @@ namespace Routes
         return send(std::move(Rest::Response::bad_request(req, "Stage Post input is not having valid data.")));
       }
 
-      std::string title = "How to Build a Unified Static Asset Pipeline"; 
-      std::string key = "1"; 
-      std::string slug = slugger::make_slug(title, key, 30); 
+      //std::string title = "How to Build a Unified Static Asset Pipeline"; 
+      //std::string key = "1"; 
+      std::string slug = slugger::make_slug(stagePostInput.title, std::to_string(stagePostInput.postId), 30); 
       std::cout << slug << "\n";
       
       auto sql =
           "UPDATE \"Posts\" "
-          "SET \"live\"=$1 WHERE \"id\"=$2 "
-          "RETURNING id, \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+          "SET \"live\"=$1, "
+          "\"slug\"=$2 "
+          "WHERE \"id\"=$3 "
+          "RETURNING id, \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
           "\"allocated\", \"live\", "
           "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
           ";";
 
       auto paramStrings = std::make_shared<std::vector<std::string>>();
       paramStrings->push_back(std::to_string(stagePostInput.live));
+      paramStrings->push_back(slug);
       paramStrings->push_back(std::to_string(stagePostInput.postId));
 
       auto paramLengths = std::make_shared<std::vector<int>>();
@@ -485,7 +488,7 @@ namespace Routes
           {
             LivePostsEvents::PostStageEvent event;
             event.id = updatedPostStage->id;
-            event.slug = "slug";
+            event.slug = updatedPostStage->slug;
             json jsonEvent = event;
 
             /////
@@ -570,7 +573,7 @@ namespace Routes
 
           json jsonPost = *updatedPostStage;    
           //jsonPost.erase("id");
-          jsonPost["slug"] = slug;
+          //jsonPost["slug"] = slug;
           //auto slug = std::to_string(updatedPostStage->id);// + updatedPostStage->title;
           // just to check long run and other service urls work asyncstd::this_thread::sleep_for(std::chrono::seconds(10));
           Prerender::prerenderPost(jsonPost.dump());          
@@ -625,7 +628,7 @@ namespace Routes
     {
 
       auto query = "SELECT "
-                   "\"Posts\".\"id\", \"title\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+                   "\"Posts\".\"id\", \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
                    "\"allocated\", \"live\", "
                    "\"Users\".\"name\" AS \"userName\" "
                    "FROM \"Posts\" LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\""
