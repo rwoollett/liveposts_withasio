@@ -1,7 +1,7 @@
 # The new base image to contain runtime dependencies
 # Dependencies: Boost >= 1.86
 
-FROM debian:12.12 AS livepostsvc_base
+FROM debian:12.13 AS livepostsvc_base
 
 RUN apt update -y;  
 ARG version=v22.21.1
