@@ -5,7 +5,7 @@ FROM debian:12.13 AS livepostsvc_base
 
 RUN apt update -y;  
 ARG version=v22.21.1
-RUN apt install -y curl openssl libssl-dev zlib1g-dev libpq-dev python3 python3-pybind11 python3-dev \
+RUN apt install -y curl gdb openssl libssl-dev zlib1g-dev libpq-dev python3 python3-pybind11 python3-dev \
     && curl -fsSL https://nodejs.org/dist/$version/node-$version-linux-x64.tar.gz -o node.tar.gz \
     && tar -xzvf node.tar.gz && rm node.tar.gz \
     && echo "export PATH=$PATH:/node-$version-linux-x64/bin" >> /root/.bashrc
@@ -41,11 +41,11 @@ RUN cd posts-vite-app; \
 # Build the project using CMake
 RUN mkdir -p build; \
     cd build; \
-    cmake .. -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release; \
+    cmake .. -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Debug; \
     cd ..; cmake --build build --target LivePostSvc; \
     cd build; make install
 
-RUN strip /usr/local/bin/LivePostSvc
+# RUN strip /usr/local/bin/LivePostSvc
 
 FROM livepostsvc_base AS livepostsvc_runtime
 
