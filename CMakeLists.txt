@@ -46,24 +46,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Change 1) LivePostsModel post, tpDate, reactiosns, date optional, reactions optional on create
-# Posts and Users, userName string optional userName on post json to Post. Post have live and allocated
-# live and allocated default false, live post events postCreate and postStage. PostStage with postId and live ns
-# PostStage json chk
-# Add service name to subjects. Add title to PostStage and slug to Post
 FetchContent_Declare(
   LivePostsModel
   GIT_REPOSITORY https://github.com/rwoollett/livepostmodel.git
   GIT_TAG master
 )
 FetchContent_MakeAvailable(livepostsmodel)
-# Cookies
-FetchContent_Declare(
-  Cookies
-  GIT_REPOSITORY https://github.com/rwoollett/cookieParse.git
-  GIT_TAG master
-)
-FetchContent_MakeAvailable(cookies)
 
 FetchContent_Declare(
   jwt-cpp
@@ -80,7 +68,6 @@ add_subdirectory(apiserver)
 target_link_libraries(APIServer PUBLIC
   nlohmann_json::nlohmann_json 
   ${LIBPQ_LIBRARIES}
-  Cookies
   jwt-cpp::jwt-cpp
 )
 target_include_directories(APIServer PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
