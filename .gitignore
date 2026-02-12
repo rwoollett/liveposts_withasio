@@ -8,7 +8,6 @@ build-release
 build-debug
 build
 build-dev
-.vscode
 /.kdev4
 *.kdev4
 RestServer
@@ -118,3 +117,6 @@ Makefile.in
 scratch.txt
 tls
 latest
+vscode_build
+/.vscode/*.json
+!/.vscode/settings.json
