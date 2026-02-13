@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 #include "livepostsmodel/model.h"
 #include "livepostsmodel/pq.h"
+#include "CreatePost.h"
 #include "../prerender/Prerender.h"
 #include "slugger.h"
 
@@ -31,7 +32,18 @@ namespace Routes
     /**=============================================================== */
     /** Create post                                                    */
     /**=============================================================== */
-    void createPost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
+    void createPost(
+        std::shared_ptr<Session> sess,
+        std::shared_ptr<PQClient> dbclient,
+        std::shared_ptr<RedisPublish::Sender> redisPublish,
+        const http::request<http::string_body> &req,
+        SendCall &&send)
+    {
+      auto op = std::make_shared<CreatePostOp>(dbclient, redisPublish, sess, req, send);
+      op->start();
+    }
+
+    void createPost_TBD(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
     {
       // Validation check on put req body and bad request is made if not valid
       LivePostsModel::Post post;
@@ -231,9 +243,9 @@ namespace Routes
           ";";
 
       std::cout << "AllocatePost query\n"
-                  << query << std::endl
-                  << "AllocatePost update query\n"
-                  << updateSql << std::endl;
+                << query << std::endl
+                << "AllocatePost update query\n"
+                << updateSql << std::endl;
 
       auto paramStrings = std::make_shared<std::vector<std::string>>();
       auto paramLengths = std::make_shared<std::vector<int>>();
@@ -431,11 +443,11 @@ namespace Routes
         return send(std::move(Rest::Response::bad_request(req, "Stage Post input is not having valid data.")));
       }
 
-      //std::string title = "How to Build a Unified Static Asset Pipeline"; 
-      //std::string key = "1"; 
-      std::string slug = slugger::make_slug(stagePostInput.title, std::to_string(stagePostInput.postId), 30); 
+      // std::string title = "How to Build a Unified Static Asset Pipeline";
+      // std::string key = "1";
+      std::string slug = slugger::make_slug(stagePostInput.title, std::to_string(stagePostInput.postId), 30);
       std::cout << slug << "\n";
-      
+
       auto sql =
           "UPDATE \"Posts\" "
           "SET \"live\"=$1, "
@@ -500,8 +512,6 @@ namespace Routes
             redisPublish->Send(
                 std::string(LivePostsEvents::SubjectNames.at(event.subject)),
                 jsonEvent.dump());
-
-
           }
 
           return send(std::move(Rest::Response::success_request(req, apiResult->c_str())));
@@ -570,17 +580,14 @@ namespace Routes
           // Only one row is returned
           *updatedPostStage = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
 
-
-          json jsonPost = *updatedPostStage;    
-          //jsonPost.erase("id");
-          //jsonPost["slug"] = slug;
-          //auto slug = std::to_string(updatedPostStage->id);// + updatedPostStage->title;
-          // just to check long run and other service urls work asyncstd::this_thread::sleep_for(std::chrono::seconds(10));
-          Prerender::prerenderPost(jsonPost.dump());          
+          json jsonPost = *updatedPostStage;
+          // jsonPost.erase("id");
+          // jsonPost["slug"] = slug;
+          // auto slug = std::to_string(updatedPostStage->id);// + updatedPostStage->title;
+          //  just to check long run and other service urls work asyncstd::this_thread::sleep_for(std::chrono::seconds(10));
+          Prerender::prerenderPost(jsonPost.dump());
 
           root["stagePost"] = *updatedPostStage;
-
-          
         }
         catch (const std::string &e)
         {
@@ -619,7 +626,6 @@ namespace Routes
 
       dbclient->asyncQuery("BEGIN", beginTransaction);
     };
-
 
     /**================================================================== */
     /** Get Posts                                                         */
@@ -1259,64 +1265,63 @@ namespace Routes
     /**=============================================================== */
     /** User list                                                      */
     /**=============================================================== */
-    void userList(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
-    {
-      json root = json::array();
+    // void userList(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
+    // {
+    //   json root = json::array();
 
-      json user;
-      user["id"] = "400";
-      user["name"] = "Mrs. Ryan Adams";
-      root.push_back(user);
-      user["id"] = "300";
-      user["name"] = "Natalie Emard";
-      root.push_back(user);
-      user["id"] = "temp@hello.co.nz";
-      user["name"] = "User at Hello.co.nz";
-      root.push_back(user);
+    //   json user;
+    //   user["id"] = "400";
+    //   user["name"] = "Mrs. Ryan Adams";
+    //   root.push_back(user);
+    //   user["id"] = "300";
+    //   user["name"] = "Natalie Emard";
+    //   root.push_back(user);
+    //   user["id"] = "temp@hello.co.nz";
+    //   user["name"] = "User at Hello.co.nz";
+    //   root.push_back(user);
 
-      std::string result;
-      try
-      {
-        result.assign(root.dump());
-        return send(std::move(Rest::Response::success_request(req, result)));
-      }
-      catch (const std::string &e)
-      {
-        return send(std::move(Rest::Response::server_error(req, e)));
-      }
-    };
+    //   std::string result;
+    //   try
+    //   {
+    //     result.assign(root.dump());
+    //     return send(std::move(Rest::Response::success_request(req, result)));
+    //   }
+    //   catch (const std::string &e)
+    //   {
+    //     return send(std::move(Rest::Response::server_error(req, e)));
+    //   }
+    // };
 
     /**=============================================================== */
     /** Posts list                                                      */
     /**=============================================================== */
-    void posts(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
-    {
-      json root = json::array();
+    //   void posts(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send)
+    //   {
+    //     json root = json::array();
 
-      json post;
-      post["id"] = "UX9NrG-3OUJPiSbvJUeOf";
-      post["date"] = "2021-06-12T04:30:12.000Z";
-      post["title"] = "Some tough spiders are thought of simply as figs";
-      post["content"] = "Their bird was, in this moment, a silly bear. They were lost without the amicable kiwi that composed their fox. A peach is an amicable crocodile. A tidy fox without sharks is truly a scorpion of willing cats. Shouting with happiness, a currant is a wise currant!";
-      post["user"] = "300";
-      post["reactions"]["thumbsUp"] = 0;
-      post["reactions"]["hooray"] = 2;
-      post["reactions"]["heart"] = 4;
-      post["reactions"]["rocket"] = 0;
-      post["reactions"]["eyes"] = 0;
-      root.push_back(post);
+    //     json post;
+    //     post["id"] = "UX9NrG-3OUJPiSbvJUeOf";
+    //     post["date"] = "2021-06-12T04:30:12.000Z";
+    //     post["title"] = "Some tough spiders are thought of simply as figs";
+    //     post["content"] = "Their bird was, in this moment, a silly bear. They were lost without the amicable kiwi that composed their fox. A peach is an amicable crocodile. A tidy fox without sharks is truly a scorpion of willing cats. Shouting with happiness, a currant is a wise currant!";
+    //     post["user"] = "300";
+    //     post["reactions"]["thumbsUp"] = 0;
+    //     post["reactions"]["hooray"] = 2;
+    //     post["reactions"]["heart"] = 4;
+    //     post["reactions"]["rocket"] = 0;
+    //     post["reactions"]["eyes"] = 0;
+    //     root.push_back(post);
 
-      std::string result;
-      try
-      {
-        result.assign(root.dump());
-        return send(std::move(Rest::Response::success_request(req, result)));
-      }
-      catch (const std::string &e)
-      {
-        return send(std::move(Rest::Response::server_error(req, e)));
-      }
-    };
-
+    //     std::string result;
+    //     try
+    //     {
+    //       result.assign(root.dump());
+    //       return send(std::move(Rest::Response::success_request(req, result)));
+    //     }
+    //     catch (const std::string &e)
+    //     {
+    //       return send(std::move(Rest::Response::server_error(req, e)));
+    //     }
+    //   };
   }
 }

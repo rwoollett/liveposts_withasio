@@ -26,13 +26,11 @@ This is built in the docker image. Using npm install in the subfolder post-vite-
 
 ## Create a cmake build folder:
 
-cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/usr/local -G "Unix Makefiles" . -B ./build-release
-cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/usr/local -G "Unix Makefiles" . -B ./build-debug
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/usr/local -G "Unix Makefiles" . -B ./build
 
 ## Use the built package to test:
 
-cmake --build build-release --target LivePostSvc
-cmake --build build-debug --target LivePostSvc
+cmake --build build --target LivePostSvc
 
 ## Docker container
 
