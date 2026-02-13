@@ -9,7 +9,7 @@
 #include <chrono>
 //#include "cookies/parse.h"
 #include "routes/Routes.h"
-#include "../redisPublish/Publish.h" // RedisPublish class
+#include <pubsub/publish/Publish.h> // RedisPublish class
 #include <boost/redis/src.hpp>       // boost redis implementation
 #include <filesystem>
 #include <iostream>

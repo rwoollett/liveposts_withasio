@@ -61,6 +61,15 @@ FetchContent_Declare(
 set(JWT_BUILD_EXAMPLES OFF CACHE BOOL "disable building examples" FORCE)
 FetchContent_MakeAvailable(jwt-cpp)
 
+FetchContent_Declare(
+  RedisPubSub
+  GIT_REPOSITORY git@github.com:rwoollett/redis_pubsub.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(RedisPubSub)
+
+message(${RedisPubSub_SOURCE_DIR})
+
 target_link_libraries(LivePostsModel PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
 target_include_directories(LivePostsModel PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
 
@@ -69,12 +78,10 @@ target_link_libraries(APIServer PUBLIC
   nlohmann_json::nlohmann_json 
   ${LIBPQ_LIBRARIES}
   jwt-cpp::jwt-cpp
+  RedisPubSub::RedisPublish
+  RedisPubSub::RedisSubscribe
 )
 target_include_directories(APIServer PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
-
-add_subdirectory(redisSubscribe)
-
-add_subdirectory(redisPublish)
 
 add_subdirectory(livepostsvc)
 

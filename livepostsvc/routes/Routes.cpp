@@ -4,7 +4,7 @@
 #include "apiserver/PQClient.h"
 #include "apiserver/Response.h"
 #include "apiserver/RouteHandler.h"
-#include "redisPublish/Publish.h"
+#include <pubsub/publish/Publish.h>
 #include <nlohmann/json.hpp>
 #include "livepostsmodel/model.h"
 #include "livepostsmodel/pq.h"
