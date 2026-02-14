@@ -68,6 +68,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(RedisPubSub)
 
+FetchContent_Declare(
+  WorkQStream
+  GIT_REPOSITORY https://github.com/rwoollett/redis_stream.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(WorkQStream)
+
+
 message(${RedisPubSub_SOURCE_DIR})
 
 target_link_libraries(LivePostsModel PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
