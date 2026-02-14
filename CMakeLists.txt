@@ -63,7 +63,7 @@ FetchContent_MakeAvailable(jwt-cpp)
 
 FetchContent_Declare(
   RedisPubSub
-  GIT_REPOSITORY git@github.com:rwoollett/redis_pubsub.git
+  GIT_REPOSITORY https://github.com/rwoollett/redis_pubsub.git
   GIT_TAG master
 )
 FetchContent_MakeAvailable(RedisPubSub)
