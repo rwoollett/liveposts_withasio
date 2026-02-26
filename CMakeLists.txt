@@ -80,6 +80,12 @@ message(${RedisPubSub_SOURCE_DIR})
 
 target_link_libraries(LivePostsModel PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
 target_include_directories(LivePostsModel PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
+target_link_libraries(WorkQProduce PUBLIC
+  nlohmann_json::nlohmann_json 
+)
+target_link_libraries(WorkQConsume PUBLIC
+  nlohmann_json::nlohmann_json 
+)
 
 add_subdirectory(apiserver)
 target_link_libraries(APIServer PUBLIC
