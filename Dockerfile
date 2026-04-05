@@ -52,7 +52,6 @@ FROM livepostsvc_base AS livepostsvc_runtime
 COPY --from=livepostsvc_builder /usr/local/bin /usr/local/bin
 COPY --from=livepostsvc_builder /usr/src/posts-vite-app /usr/src/posts-vite-app
 RUN export PATH=$PATH:/node-$version-linux-x64/bin
-WORKDIR /usr/src 
 
 EXPOSE 3011
 
