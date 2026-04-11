@@ -7,10 +7,11 @@
 #include <boost/program_options.hpp>
 #include <thread>
 #include <chrono>
-//#include "cookies/parse.h"
+// #include "cookies/parse.h"
 #include "routes/Routes.h"
 #include <pubsub/publish/Publish.h> // RedisPublish class
-#include <boost/redis/src.hpp>       // boost redis implementation
+#include <boost/redis/src.hpp>      // boost redis implementation
+#include <mtlog/mt_log.hpp>
 #include <filesystem>
 #include <iostream>
 #include <system_error>
@@ -23,94 +24,106 @@ namespace po = boost::program_options;
 using boost::asio::signal_set;
 namespace fs = std::filesystem;
 
-static bool check_node_path(const char* value) {
-    std::cout << "Checking NODE_PATH: ";
+static bool check_node_path(const char *value)
+{
+  std::cout << "Checking NODE_PATH: ";
 
-    if (!value || value[0] == '\0') {
-        std::cout << "❌ NOT SET\n";
-        return false;
-    }
+  if (!value || value[0] == '\0')
+  {
+    std::cout << "❌ NOT SET\n";
+    return false;
+  }
 
-    fs::path p(value);
-    std::error_code ec;
+  fs::path p(value);
+  std::error_code ec;
 
-    if (!fs::exists(p, ec)) {
-        std::cout << "❌ DOES NOT EXIST: " << p << "\n";
-        return false;
-    }
+  if (!fs::exists(p, ec))
+  {
+    std::cout << "❌ DOES NOT EXIST: " << p << "\n";
+    return false;
+  }
 
-    if (!fs::is_regular_file(p, ec)) {
-        std::cout << "❌ NOT A FILE: " << p << "\n";
-        return false;
-    }
+  if (!fs::is_regular_file(p, ec))
+  {
+    std::cout << "❌ NOT A FILE: " << p << "\n";
+    return false;
+  }
 
-    auto perms = fs::status(p, ec).permissions();
-    bool executable =
-        (perms & fs::perms::owner_exec) != fs::perms::none ||
-        (perms & fs::perms::group_exec) != fs::perms::none ||
-        (perms & fs::perms::others_exec) != fs::perms::none;
+  auto perms = fs::status(p, ec).permissions();
+  bool executable =
+      (perms & fs::perms::owner_exec) != fs::perms::none ||
+      (perms & fs::perms::group_exec) != fs::perms::none ||
+      (perms & fs::perms::others_exec) != fs::perms::none;
 
-    if (!executable) {
-        std::cout << "❌ NOT EXECUTABLE: " << p << "\n";
-        return false;
-    }
+  if (!executable)
+  {
+    std::cout << "❌ NOT EXECUTABLE: " << p << "\n";
+    return false;
+  }
 
-    std::cout << "OK\n";
-    std::cout << "  Path: " << p << "\n";
-    std::cout << "  Executable: yes\n";
-    return true;
+  std::cout << "OK\n";
+  std::cout << "  Path: " << p << "\n";
+  std::cout << "  Executable: yes\n";
+  return true;
 }
 
-static bool check_prerender_script(const char* value) {
-    std::cout << "Checking PRERENDER_SCRIPT: ";
+static bool check_prerender_script(const char *value)
+{
+  std::cout << "Checking PRERENDER_SCRIPT: ";
 
-    if (!value || value[0] == '\0') {
-        std::cout << "❌ NOT SET\n";
-        return false;
-    }
+  if (!value || value[0] == '\0')
+  {
+    std::cout << "❌ NOT SET\n";
+    return false;
+  }
 
-    fs::path p(value);
-    std::error_code ec;
+  fs::path p(value);
+  std::error_code ec;
 
-    if (!fs::exists(p, ec)) {
-        std::cout << "❌ DOES NOT EXIST: " << p << "\n";
-        return false;
-    }
+  if (!fs::exists(p, ec))
+  {
+    std::cout << "❌ DOES NOT EXIST: " << p << "\n";
+    return false;
+  }
 
-    if (!fs::is_regular_file(p, ec)) {
-        std::cout << "❌ NOT A FILE: " << p << "\n";
-        return false;
-    }
+  if (!fs::is_regular_file(p, ec))
+  {
+    std::cout << "❌ NOT A FILE: " << p << "\n";
+    return false;
+  }
 
-    auto perms = fs::status(p, ec).permissions();
-    bool readable =
-        (perms & fs::perms::owner_read) != fs::perms::none ||
-        (perms & fs::perms::group_read) != fs::perms::none ||
-        (perms & fs::perms::others_read) != fs::perms::none;
+  auto perms = fs::status(p, ec).permissions();
+  bool readable =
+      (perms & fs::perms::owner_read) != fs::perms::none ||
+      (perms & fs::perms::group_read) != fs::perms::none ||
+      (perms & fs::perms::others_read) != fs::perms::none;
 
-    if (!readable) {
-        std::cout << "❌ NOT READABLE: " << p << "\n";
-        return false;
-    }
+  if (!readable)
+  {
+    std::cout << "❌ NOT READABLE: " << p << "\n";
+    return false;
+  }
 
-    std::cout << "OK\n";
-    std::cout << "  Path: " << p << "\n";
-    std::cout << "  Readable: yes\n";
-    return true;
+  std::cout << "OK\n";
+  std::cout << "  Path: " << p << "\n";
+  std::cout << "  Readable: yes\n";
+  return true;
 }
 
-void prerenderSelfTest() {
-    std::cout << "=== Prerender Startup Self‑Test ===\n";
+void prerenderSelfTest()
+{
+  std::cout << "=== Prerender Startup Self‑Test ===\n";
 
-    bool ok1 = check_node_path(std::getenv("NODE_PATH"));
-    bool ok2 = check_prerender_script(std::getenv("PRERENDER_SCRIPT"));
+  bool ok1 = check_node_path(std::getenv("NODE_PATH"));
+  bool ok2 = check_prerender_script(std::getenv("PRERENDER_SCRIPT"));
 
-    if (!ok1 || !ok2) {
-        std::cout << "❌ Self‑test FAILED — prerendering disabled\n";
-        throw std::runtime_error("Prerender self‑test failed");
-    }
+  if (!ok1 || !ok2)
+  {
+    std::cout << "❌ Self‑test FAILED — prerendering disabled\n";
+    throw std::runtime_error("Prerender self‑test failed");
+  }
 
-    std::cout << "✅ Self‑test PASSED — prerender system ready\n";
+  std::cout << "✅ Self‑test PASSED — prerender system ready\n";
 }
 
 po::variables_map parse_args(int &argc, char *argv[])
@@ -154,6 +167,13 @@ po::variables_map parse_args(int &argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+  auto livepostsvc_logfile = std::getenv("LIVEPOSTSVC_LOGFILE");
+  if (livepostsvc_logfile == nullptr)
+  {
+    std::cerr << "Environment variable LIVEPOSTSVC_LOGFILE is not set." << std::endl;
+    return EXIT_FAILURE;
+  }
+
   // Check command line arguments.
   try
   {
@@ -170,7 +190,6 @@ int main(int argc, char *argv[])
     const char *redis_port = std::getenv("REDIS_PORT");
     const char *redis_channel = std::getenv("REDIS_CHANNEL");
     const char *redis_password = std::getenv("REDIS_PASSWORD");
-
 
     if (jwt_secret_key == nullptr || authorised_user == nullptr)
     {
@@ -195,49 +214,44 @@ int main(int argc, char *argv[])
     if (!(redis_host && redis_port && redis_password && redis_channel))
     {
       std::cerr << "Environment variables REDIS_CHANNEL, REDIS_HOST, REDIS_PORT or REDIS_PASSWORD are not set." << std::endl;
-      exit(1);
+      return EXIT_FAILURE;
     }
 
     if (!(node_path && prerender_script))
     {
       std::cerr << "Environment variables NODE_PATH or PRERENDER_SCRIPT are not set." << std::endl;
-      exit(1);
+      return EXIT_FAILURE;
     }
 
     po::variables_map vm = parse_args(argc, argv);
     if (vm.count("help"))
-      return 0;
+      return EXIT_SUCCESS;
 
     auto address = net::ip::make_address(vm["address"].as<std::string>());
     auto port = vm["port"].as<std::uint16_t>();
     auto threads = vm["threads"].as<std::uint16_t>();
     auto const doc_root = std::make_shared<std::string>(vm["root"].as<std::string>());
-    std::cout << "Listening on " << address << ":" << port << " [Threads:" << threads << "]" << std::endl;
-    std::cout << "Document root: " << *doc_root << std::endl;
+    // std::cout << "Listening on " << address << ":" << port << " [Threads:" << threads << "]" << std::endl;
+    // std::cout << "Document root: " << *doc_root << std::endl;
 
-    try 
-    { 
-      prerenderSelfTest(); 
-    } 
-    catch (const std::exception& e) 
-    { 
-      std::cerr << "Startup error: " << e.what() << "\n"; 
-      return 1; 
+    mt_logging::logger().log({livepostsvc_logfile,
+                              fmt::format("{} Listening on {}:{} [Threads:{}]", livepostsvc_logfile, address.to_string(), port, threads),
+                              std::ios::out,
+                              true});
+
+    try
+    {
+      prerenderSelfTest();
     }
-    // std::unordered_map<std::string, std::string> cookies;
-    // // Display parsed cookies
-    // cookies = Cookies::cookie_map("username=JohnDoe; sessionid=12345;");
-    // std::cout << "Cookie values" << std::endl;
-    // for (const auto &[key, val] : cookies)
-    // {
-    //   std::cout << key << " = " << val << '\n';
-    // }
+    catch (const std::exception &e)
+    {
+      std::cerr << "Startup error: " << e.what() << "\n";
+      mt_logging::logger().log({livepostsvc_logfile, fmt::format("Startup error: {}", e.what()), std::ios::app, true});
+      return EXIT_FAILURE;
+    }
 
     // The io_context is required for all I/O
     net::io_context ioc{threads};
-
-    // Create and launch a listening port
-    std::cout << std::endl;
 
     RedisPublish::Publish redisPublisher; // starts the redis publisher on a new thread and own ioc
     auto restserver = std::make_shared<RestServer>(
@@ -253,15 +267,15 @@ int main(int argc, char *argv[])
     restserver->get("/api/v1/liveposts/posts", "", Routes::LivePosts::fetchPosts);
     // User auth req. Create user at liveposts service for the actual logged in user.
     restserver->put("/api/v1/liveposts/posts", "*", Routes::LivePosts::createPost);
-    
-    // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user 
+
+    // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user
     restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost);
     restserver->put("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::stagePost);
 
     restserver->put("/api/v1/liveposts/users", "*", Routes::LivePosts::createUser); // this should only be server side done
     restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Routes::LivePosts::findUserByAuthId);
     restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", "*", Routes::LivePosts::findUserById);
-    //restserver->get("/api/v1/liveposts/users", "", Routes::LivePosts::userList);
+    // restserver->get("/api/v1/liveposts/users", "", Routes::LivePosts::userList);
 
     // Begin the rest server at tcp address/port ioc context in a thread pool (no. of threads in cmd arg)
     restserver->run();
@@ -307,12 +321,12 @@ int main(int argc, char *argv[])
   catch (const std::exception &e)
   {
     std::cout << "Except: " << e.what() << "\n";
-    exit(1);
+    return EXIT_FAILURE;
   }
   catch (const std::string &e)
   {
     std::cout << "Except: " << e << "\n";
-    exit(1);
+    return EXIT_FAILURE;
   }
 
   return EXIT_SUCCESS;
