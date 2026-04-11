@@ -120,3 +120,7 @@ latest
 vscode_build
 /.vscode/*.json
 !/.vscode/settings.json
+
+# --- Compile commands ---
+compile_commands.json
+
