@@ -20,7 +20,7 @@
 #include <ctime>
 
 using json = nlohmann::json;
-using LivePostsModel::parseDate;
+using Timestamp::parseDate;
 using Rest::RouteHandler;
 
 namespace Routes

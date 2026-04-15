@@ -2,7 +2,6 @@
 #include "restclient-cpp/restclient.h"
 #include "restclient-cpp/connection.h"
 #include "livepostsmodel/model.h"
-#include "livepostsmodel/timestamp.h"
 #include <random>
 #include <thread>
 #include <iostream>

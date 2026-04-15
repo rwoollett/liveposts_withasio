@@ -54,6 +54,13 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(nlohmann_json)
 
 FetchContent_Declare(
+  Timestamp
+  GIT_REPOSITORY https://github.com/rwoollett/timestamp.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(Timestamp)
+
+FetchContent_Declare(
   LivePostsModel
   GIT_REPOSITORY https://github.com/rwoollett/livepostmodel.git
   GIT_TAG master
@@ -85,7 +92,7 @@ FetchContent_MakeAvailable(WorkQStream)
 
 message(${RedisPubSub_SOURCE_DIR})
 
-target_link_libraries(LivePostsModel PUBLIC nlohmann_json::nlohmann_json ${LIBPQ_LIBRARIES})
+target_link_libraries(LivePostsModel PUBLIC nlohmann_json::nlohmann_json Timestamp ${LIBPQ_LIBRARIES})
 target_include_directories(LivePostsModel PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
 target_link_libraries(WorkQProduce PUBLIC
   nlohmann_json::nlohmann_json 

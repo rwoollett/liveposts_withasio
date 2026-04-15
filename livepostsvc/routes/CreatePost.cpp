@@ -15,7 +15,7 @@
 #include <ctime>
 
 using json = nlohmann::json;
-using LivePostsModel::parseDate;
+using Timestamp::parseDate;
 using Rest::makeParamVectors;
 using Rest::RouteHandler;
 using Rest::safePgErrorForJson;
