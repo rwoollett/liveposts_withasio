@@ -153,7 +153,7 @@ po::variables_map parse_args(int &argc, char *argv[])
       ("help", "produce help message")                                                         //                                                                           //
       ("address", po::value<std::string>()->default_value("0.0.0.0"), "set listening address") //
       ("port", po::value<std::uint16_t>()->default_value(port), "set listening port")          //
-      ("threads", po::value<std::uint16_t>()->default_value(2), "set number threads")          //
+      ("threads", po::value<std::uint16_t>()->default_value(8), "set number threads")          //
       ("root", po::value<std::string>()->default_value("latest"), "document root folder");     //
 
   po::variables_map vm;
@@ -167,10 +167,10 @@ po::variables_map parse_args(int &argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-  auto livepostsvc_logfile = std::getenv("LIVEPOSTSVC_LOGFILE");
-  if (livepostsvc_logfile == nullptr)
+  auto MTLOG_LOGFILE = std::getenv("MTLOG_LOGFILE");
+  if (MTLOG_LOGFILE == nullptr)
   {
-    std::cerr << "Environment variable LIVEPOSTSVC_LOGFILE is not set." << std::endl;
+    std::cerr << "Environment variable MTLOG_LOGFILE is not set." << std::endl;
     return EXIT_FAILURE;
   }
 
@@ -234,9 +234,11 @@ int main(int argc, char *argv[])
     // std::cout << "Listening on " << address << ":" << port << " [Threads:" << threads << "]" << std::endl;
     // std::cout << "Document root: " << *doc_root << std::endl;
 
-    mt_logging::logger().log({livepostsvc_logfile,
-                              fmt::format("{} Listening on {}:{} [Threads:{}]", livepostsvc_logfile, address.to_string(), port, threads),
-                              std::ios::out,
+    mt_logging::logger().log({MTLOG_LOGFILE,
+                              mt_logging::LogLevel::Error,
+                              true});
+    mt_logging::logger().log({fmt::format("Listening on {}:{} [Threads:{}] [PQ DB Pool max {}]", address.to_string(), port, threads, 0),
+                              mt_logging::LogLevel::Error,
                               true});
 
     try
@@ -245,8 +247,9 @@ int main(int argc, char *argv[])
     }
     catch (const std::exception &e)
     {
-      std::cerr << "Startup error: " << e.what() << "\n";
-      mt_logging::logger().log({livepostsvc_logfile, fmt::format("Startup error: {}", e.what()), std::ios::app, true});
+      mt_logging::logger().log({fmt::format("LivePostsApi server error {}", e.what()),
+                                mt_logging::LogLevel::Error,
+                                true});
       return EXIT_FAILURE;
     }
 
