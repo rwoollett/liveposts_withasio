@@ -108,6 +108,8 @@ target_link_libraries(APIServer PUBLIC
   jwt-cpp::jwt-cpp
   RedisPubSub::RedisPublish
   RedisPubSub::RedisSubscribe
+  WorkQStream::WorkQProduce
+  WorkQStream::WorkQConsume  
 )
 target_include_directories(APIServer PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
 

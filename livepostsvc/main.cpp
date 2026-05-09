@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
     mt_logging::logger().log({MTLOG_LOGFILE,
                               mt_logging::LogLevel::Error,
                               true});
-    mt_logging::logger().log({fmt::format("Listening on {}:{} [Threads:{}] [PQ DB Pool max {}]", address.to_string(), port, threads, 0),
+    mt_logging::logger().log({fmt::format("Listening on {}:{} [Threads:{}] [PQ DB Pool max {}]", address.to_string(), port, threads, Rest::PQClientPool::Config().max_size),
                               mt_logging::LogLevel::Error,
                               true});
 

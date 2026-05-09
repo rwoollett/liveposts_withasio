@@ -37,6 +37,7 @@
       "generator": "Unix Makefiles",
       "binaryDir": "${sourceDir}/build/tsan",
       "cacheVariables": {
+        "BUILD_TESTS": "ON",
         "CMAKE_BUILD_TYPE": "TSAN",
         "CMAKE_CXX_FLAGS": "-fsanitize=thread -O1 -g -fno-omit-frame-pointer",
         "CMAKE_C_FLAGS": "-fsanitize=thread -O1 -g -fno-omit-frame-pointer",

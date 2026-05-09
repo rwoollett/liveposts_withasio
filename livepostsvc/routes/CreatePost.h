@@ -20,27 +20,34 @@ namespace Routes::LivePosts
   class CreatePostOp : public Rest::DbOpBase
   {
   public:
-    CreatePostOp(
-        std::shared_ptr<PQClient> db,
-        std::shared_ptr<RedisPublish::Sender> publish,
-        std::shared_ptr<Session> sess,
-        const http::request<http::string_body> &req,
-        SendCall send);
+    CreatePostOp(RequestContext ctx);
 
   protected:
     bool parseReq() override;
     void doWork() override;
     bool onWorkResult(PGresult *res) override;
     void handleWork(PGresult *res) override;
+    void onCommit(PGresult *res) override;
 
   private:
     LivePostsModel::Post post_;
+    LivePostsModel::Post newPost_;
     WorkStep workStep_;
-    std::shared_ptr<RedisPublish::Sender> publish_;
-    std::shared_ptr<std::string> createPostResult_;
-    std::shared_ptr<std::vector<std::string>> paramStrings_;
-    std::shared_ptr<std::vector<int>> paramLengths_;
-    std::shared_ptr<std::vector<int>> paramFormats_;
+    std::vector<std::string> paramStrings_;
+    std::vector<const char *> paramValues_;
+    std::vector<int> paramLengths_;
+    std::vector<int> paramFormats_;
+    std::string resultBody_;
+
+    static constexpr const char *CREATE_BOARD_INIT = "0,0,0,0,0,0,0,0,0";
+
+    static constexpr const char *createPostSql =
+        "INSERT INTO \"Posts\" "
+        "(\"title\", \"content\", \"userId\", \"date\") VALUES ($1, $2, $3, NOW()) "
+        "RETURNING id, \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+        "\"allocated\", \"live\", "
+        "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
+        ";";
   };
 
 }

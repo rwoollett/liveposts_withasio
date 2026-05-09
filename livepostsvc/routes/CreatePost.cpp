@@ -15,33 +15,16 @@
 #include <ctime>
 
 using json = nlohmann::json;
-using Timestamp::parseDate;
 using Rest::makeParamVectors;
-using Rest::RouteHandler;
+using Rest::RequestContext;
 using Rest::safePgErrorForJson;
+using Timestamp::parseDate;
 
 namespace Routes::LivePosts
 {
-  const char *CREATE_BOARD_INIT = "0,0,0,0,0,0,0,0,0";
-
-  const char *createPostSql =
-      "INSERT INTO \"Posts\" "
-      "(\"title\", \"content\", \"userId\", \"date\") VALUES ($1, $2, $3, NOW()) "
-      "RETURNING id, \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
-      "\"allocated\", \"live\", "
-      "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
-      ";";
-
-  CreatePostOp::CreatePostOp(
-      std::shared_ptr<PQClient> db,
-      std::shared_ptr<RedisPublish::Sender> publish,
-      std::shared_ptr<Session> sess,
-      const http::request<http::string_body> &req,
-      SendCall send)
-      : DbOpBase(db, sess, req, send),
-        workStep_(WorkStep::Done),
-        publish_(publish),
-        createPostResult_(std::make_shared<std::string>())
+  CreatePostOp::CreatePostOp(RequestContext ctx)
+      : DbOpBase(std::move(ctx)),
+        workStep_(WorkStep::Done)
   {
   }
 
@@ -49,7 +32,7 @@ namespace Routes::LivePosts
   {
     try
     {
-      post_ = json::parse(req_.body());
+      post_ = json::parse(ctx_.req.body());
     }
     catch (...)
     {
@@ -63,13 +46,20 @@ namespace Routes::LivePosts
       return false;
     }
 
-    std::vector<std::string> postVals = {
-        post_.title,
-        post_.content,
-        std::to_string(post_.userId)};
+    // Build paramStrings_ (owned)
+    paramStrings_.clear();
+    paramStrings_.push_back(post_.title);
+    paramStrings_.push_back(post_.content);
+    paramStrings_.push_back(std::to_string(post_.userId));
 
-    std::tie(paramStrings_, paramLengths_, paramFormats_) =
-        makeParamVectors(postVals);
+    // Build paramValues_
+    paramValues_.clear();
+    for (auto &s : paramStrings_)
+      paramValues_.push_back(s.c_str());
+
+    // lengths + formats
+    paramLengths_.assign(paramStrings_.size(), 0);
+    paramFormats_.assign(paramStrings_.size(), 0);
 
     return true;
   }
@@ -77,9 +67,12 @@ namespace Routes::LivePosts
   void CreatePostOp::doWork()
   {
     auto self = shared_from_this();
-    db_->asyncParamQuery(
+    ctx_.db->asyncExecParams(
         createPostSql,
-        *paramStrings_, *paramLengths_, *paramFormats_,
+        paramValues_,
+        paramLengths_,
+        paramFormats_,
+        static_cast<int>(paramValues_.size()),
         [self](PGresult *res)
         { self->handleWork(res); });
   }
@@ -93,58 +86,111 @@ namespace Routes::LivePosts
     }
     if (workStep_ != WorkStep::Done)
     {
-      doWork();
+      state_ = State::Work;
     }
-    state_ = State::Commit;
+    else
+    {
+      state_ = State::Commit;
+    }
     advance();
   }
 
   bool CreatePostOp::onWorkResult(PGresult *res)
   {
-    std::string err = safePgErrorForJson(db_->connErrorMessage(), res);
-
-    if (!res || PQresultStatus(res) != PGRES_TUPLES_OK)
+    if (!res)
     {
-      *createPostResult_ = "Create Post failed " + err;
-      sendError(*createPostResult_);
+      sendError("Create post failed: " + ctx_.db->connErrorMessage());
+      return false;
+    }
+
+    auto status = PQresultStatus(res);
+
+    // Ignore PGRES_COMMAND_OK (completion of INSERT)
+    if (status == PGRES_COMMAND_OK)
+    {
+      PQclear(res);
+      return true;
+    }
+
+    // Fatal error
+    if (status == PGRES_FATAL_ERROR)
+    {
+      std::string err = PQresultErrorMessage(res);
+      PQclear(res);
+      sendError("Create post failed: " + err);
+      return false;
+    }
+
+    // Only PGRES_TUPLES_OK is the real INSERT ... RETURNING row
+    if (status != PGRES_TUPLES_OK)
+    {
+      std::string err = PQresultErrorMessage(res);
+      PQclear(res);
+      sendError("Create post failed: " + err);
       return false;
     }
 
     try
     {
       int cols = PQnfields(res);
-      LivePostsModel::Post newPost = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
-
-      LivePostsEvents::PostCreateEvent event;
-      event.id = newPost.id;
-      event.userId = newPost.userId;
-      event.title = newPost.title;
-      event.userName = newPost.userName;
-      event.live = newPost.live;
-      event.allocated = newPost.allocated;
-      json jsonEvent = event;
-
-      Routes::LivePosts::cntLivePostMessage++;
-      std::cout << "  Sending to publish: Subject (" << LivePostsEvents::SubjectNames.at(event.subject) << ")"
-                << " " << Routes::LivePosts::cntLivePostMessage << " LivePost messages made. "
-                << std::endl;
-
-      publish_->Send(
-          std::string(LivePostsEvents::SubjectNames.at(event.subject)),
-          jsonEvent.dump());
+      newPost_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
+      PQclear(res);
 
       json root;
-      root["createPost"] = newPost;
-      *createPostResult_ = root.dump();
+      root["createPost"] = newPost_;
+      resultBody_ = root.dump();
+      return true;
     }
     catch (const std::exception &e)
     {
+      PQclear(res);
       sendError(e.what());
       return false;
     }
+  }
 
-    sendSuccess(*createPostResult_);
-    return true;
+  void CreatePostOp::onCommit(PGresult *res)
+  {
+    if (!res)
+    {
+      sendServerError("COMMIT failed: " + ctx_.db->connErrorMessage());
+      return;
+    }
+
+    auto status = PQresultStatus(res);
+    if (status != PGRES_COMMAND_OK)
+    {
+      std::string err = PQresultErrorMessage(res);
+      PQclear(res);
+      sendServerError("COMMIT failed: " + err);
+      return;
+    }
+    PQclear(res);
+
+    LivePostsEvents::PostCreateEvent event;
+    event.id = newPost_.id;
+    event.userId = newPost_.userId;
+    event.title = newPost_.title;
+    event.userName = newPost_.userName;
+    event.live = newPost_.live;
+    event.allocated = newPost_.allocated;
+    json jsonEvent = event;
+
+    Routes::LivePosts::cntLivePostMessage++;
+    mt_logging::logger().log(
+        {fmt::format(
+             " Sending to publish: Subject ({}) message made.",
+             LivePostsEvents::SubjectNames.at(event.subject)),
+         mt_logging::LogLevel::Debug,
+         true});
+
+    ctx_.redis->publish(
+        std::string(LivePostsEvents::SubjectNames.at(event.subject)),
+        jsonEvent.dump());
+
+    sendSuccess(resultBody_);
+    state_ = State::Done;
+    return;
   }
 
 }
