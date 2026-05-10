@@ -7,11 +7,10 @@
 #include <boost/program_options.hpp>
 #include <thread>
 #include <chrono>
-// #include "cookies/parse.h"
 #include "routes/Routes.h"
 #include <pubsub/publish/Publish.h> // RedisPublish class
-#include <boost/redis/src.hpp>      // boost redis implementation
 #include <mtlog/mt_log.hpp>
+#include <boost/redis/src.hpp> // boost redis implementation
 #include <filesystem>
 #include <iostream>
 #include <system_error>
@@ -19,7 +18,9 @@
 
 namespace net = boost::asio;      // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
+using Rest::RedisFacade;
 using Rest::RestServer;
+using Rest::WSClientManager;
 namespace po = boost::program_options;
 using boost::asio::signal_set;
 namespace fs = std::filesystem;
@@ -231,15 +232,16 @@ int main(int argc, char *argv[])
     auto port = vm["port"].as<std::uint16_t>();
     auto threads = vm["threads"].as<std::uint16_t>();
     auto const doc_root = std::make_shared<std::string>(vm["root"].as<std::string>());
-    // std::cout << "Listening on " << address << ":" << port << " [Threads:" << threads << "]" << std::endl;
-    // std::cout << "Document root: " << *doc_root << std::endl;
 
-    mt_logging::logger().log({MTLOG_LOGFILE,
-                              mt_logging::LogLevel::Error,
-                              true});
-    mt_logging::logger().log({fmt::format("Listening on {}:{} [Threads:{}] [PQ DB Pool max {}]", address.to_string(), port, threads, Rest::PQClientPool::Config().max_size),
-                              mt_logging::LogLevel::Error,
-                              true});
+    mt_logging::logger().log(
+        {.line = fmt::format(
+             "{} Listening on {}:{} [Threads:{}] [PQ DB Pool max {}]",
+             MTLOG_LOGFILE,
+             address.to_string(),
+             port, threads,
+             Rest::PQClientPool::Config().max_size),
+         .level = mt_logging::LogLevel::Error,
+         .include_thread_id = true});
 
     try
     {
@@ -257,13 +259,32 @@ int main(int argc, char *argv[])
     net::io_context ioc{threads};
 
     RedisPublish::Publish redisPublisher; // starts the redis publisher on a new thread and own ioc
+    WorkQStream::Producer redisProducer;
+
+    auto redisSenders = std::make_shared<RedisSenders>();
+    redisSenders->publish = std::make_shared<RedisPublish::Sender>(redisPublisher);
+    redisSenders->produce = std::make_shared<WorkQStream::Sender>(redisProducer);
+    auto redis = std::make_shared<RedisFacade>(redisSenders);
+    auto wsclient_manager = std::make_shared<WSClientManager>(redis);
+
+    PQClientPool::Config cfg;
+    cfg.dbname = std::string(apidb_name);
+    cfg.host = std::string(apidb_host);
+    cfg.user = std::string(apidb_user);
+    cfg.password = std::string(apidb_password);
+    cfg.port = std::string(apidb_port);
+    auto pq_pool = std::make_shared<PQClientPool>(cfg);
+
     auto restserver = std::make_shared<RestServer>(
         ioc,
         tcp::endpoint{address, port},
         doc_root,
-        std::make_shared<RedisPublish::Sender>(redisPublisher));
+        redis,
+        wsclient_manager,
+        pq_pool);
 
     restserver->get("/health", "", Routes::LivePosts::healthCheck);
+
     restserver->get("/api/v1/liveposts/homepage", "", Routes::LivePosts::homePage); // non DB just hard coded page data
 
     // Public url to fetch posts for the web
@@ -272,20 +293,18 @@ int main(int argc, char *argv[])
     restserver->put("/api/v1/liveposts/posts", "*", Routes::LivePosts::createPost);
 
     // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user
-    restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost);
-    restserver->put("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::stagePost);
-
-    restserver->put("/api/v1/liveposts/users", "*", Routes::LivePosts::createUser); // this should only be server side done
-    restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Routes::LivePosts::findUserByAuthId);
-    restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", "*", Routes::LivePosts::findUserById);
-    // restserver->get("/api/v1/liveposts/users", "", Routes::LivePosts::userList);
+    // restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost);
+    // restserver->put("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::stagePost);
+    // restserver->put("/api/v1/liveposts/users", "*", Routes::LivePosts::createUser); // this should only be server side done
+    // restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Routes::LivePosts::findUserByAuthId);
+    // restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", "*", Routes::LivePosts::findUserById);
 
     // Begin the rest server at tcp address/port ioc context in a thread pool (no. of threads in cmd arg)
     restserver->run();
 
-    std::cout << "\nRedis Publisher started.\n";
-    std::cout << "Api server started.         \n";
-    std::cout << " - ready for signal to stop.\n";
+    std::cerr << "\nRedis Publisher started.\n";
+    std::cerr << "Api server started.         \n";
+    std::cerr << " - ready for signal to stop.\n";
 
     // Setup the signals to cause end to applications
     net::signal_set signals{ioc};
@@ -313,22 +332,26 @@ int main(int argc, char *argv[])
 
     // This waits until signaled and work is complete
     ioc.run();
-    std::cout << "Stopping api server from signal (Signal set to also stop redis publish sender).\n";
+    std::cerr << "Stopping api server from signal (Signal set to also stop redis publish sender).\n";
 
     // Block until all the threads exit
     for (auto &t : v)
       t.join();
 
-    std::cout << "Api server stopped.\n";
+    std::cerr << "Api server stopped.\n";
   }
   catch (const std::exception &e)
   {
-    std::cout << "Except: " << e.what() << "\n";
+    mt_logging::logger().log({fmt::format("LivePostsApi server error {}", e.what()),
+                              mt_logging::LogLevel::Error,
+                              true});
     return EXIT_FAILURE;
   }
   catch (const std::string &e)
   {
-    std::cout << "Except: " << e << "\n";
+    mt_logging::logger().log({fmt::format("LivePostsApi server error {}", e),
+                              mt_logging::LogLevel::Error,
+                              true});
     return EXIT_FAILURE;
   }
 

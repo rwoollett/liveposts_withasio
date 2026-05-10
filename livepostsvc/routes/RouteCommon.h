@@ -2,5 +2,5 @@
 
 namespace Routes::LivePosts
 {
-  static int cntLivePostMessage = 0;
+  inline int cntLivePostMessage = 0;
 }

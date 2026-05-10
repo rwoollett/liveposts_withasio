@@ -1,49 +1,89 @@
-#ifndef MODEL_TTTROUTES_H
-#define MODEL_TTTROUTES_H
+#pragma once
 
-#include "livepostsmodel/Events.h"
-#include <boost/beast/http/message.hpp>
-#include <boost/beast/http/string_body.hpp>
-#include <memory>
-namespace RedisPublish
-{
-  class Sender;
-}
-namespace Rest
-{
-  class PQClient;
-  class Session;
-}
+#include "apiserver/HttpRoute.h"
+#include "CreatePost.h"
+#include "FetchPost.h"
+#include "RouteCommon.h"
+#include <boost/asio/dispatch.hpp>
 
-namespace http = boost::beast::http;
-// using boost::beast::http::request;
-// using boost::beast::http::response;
-// using boost::beast::http::string_body;
-using Rest::PQClient;
-using Rest::Session;
-using SendCall = std::function<void(http::response<http::string_body> &&msg)>;
+using Rest::RequestContext;
+namespace net = boost::asio; // from <boost/asio.hpp>
 
 namespace Routes
 {
   namespace LivePosts
   {
+    inline void healthCheck(RequestContext ctx)
+    {
+      json root = "OK";
+      std::string result = root.dump();
+      auto &strand = ctx.session->strand(); // <-- bind reference ONCE
 
-    void healthCheck(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
-    void homePage(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
+      net::dispatch(strand,
+                    [ctx = std::move(ctx), result = std::move(result)]() mutable
+                    {
+                      ctx.send(Rest::Response::success_request(ctx.req, result));
+                    });
+    };
 
-    void createPost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
-    void fetchPosts(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
-    void allocatePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
-    void stagePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
+    inline void createPost(RequestContext ctx)
+    {
+      auto op = std::make_shared<CreatePostOp>(std::move(ctx));
+      op->start();
+    }
 
-    void createUser(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
-    void findUserByAuthId(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
-    void findUserById(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
+    inline void fetchPosts(RequestContext ctx)
+    {
+      auto op = std::make_shared<FetchPostOp>(std::move(ctx));
+      op->start();
+    }
 
-    //void userList(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
-    //void posts(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
+    inline void homePage(RequestContext ctx)
+    {
+      json root;
+      root["title"] = "LivePost Service";
+      root["description"] = "The Live Post UI interaction "
+                            "to test the stack of NetProc.";
+      root["navCards"] = json::array();
+      root["popularCards"] = json::array();
+
+      json card;
+      card["title"] = "Laboratory Collection";
+      card["catchPhrase"] = "Time complexity of algorithm is how fast it perform the algorithm. Fast solutions are O(n), slow solutions are O(n2) or greater.";
+
+      root["navCards"].push_back(card);
+      root["popularCards"].push_back(card);
+
+      std::string result;
+      auto &strand = ctx.session->strand(); // <-- bind reference ONCE
+      try
+      {
+        result = root.dump();
+        net::dispatch(strand,
+                      [ctx = std::move(ctx), result = std::move(result)]() mutable
+                      {
+                        ctx.send(Rest::Response::success_request(ctx.req, result));
+                      });
+        return;
+      }
+      catch (const std::string &e)
+      {
+        net::dispatch(strand,
+                      [ctx = std::move(ctx), result = std::move(e)]() mutable
+                      {
+                        ctx.send(Rest::Response::server_error(ctx.req, result));
+                      });
+        return;
+      }
+    };
+
+    // void fetchPosts(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
+    // void allocatePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
+    // void stagePost(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
+
+    // void createUser(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
+    // void findUserByAuthId(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
+    // void findUserById(std::shared_ptr<Session> sess, std::shared_ptr<PQClient> dbclient, std::shared_ptr<RedisPublish::Sender> redisPublish, const http::request<http::string_body> &req, SendCall &&send);
 
   }
 }
-
-#endif // MODEL_TTTROUTES_H

@@ -123,4 +123,5 @@ vscode_build
 
 # --- Compile commands ---
 compile_commands.json
+output_livepostsvc.log
 
