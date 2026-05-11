@@ -167,30 +167,44 @@ namespace Routes::LivePosts
     }
     PQclear(res);
 
-    LivePostsEvents::PostCreateEvent event;
-    event.id = newPost_.id;
-    event.userId = newPost_.userId;
-    event.title = newPost_.title;
-    event.userName = newPost_.userName;
-    event.live = newPost_.live;
-    event.allocated = newPost_.allocated;
-    json jsonEvent = event;
+    try
+    {
+      LivePostsEvents::PostCreateEvent event;
+      event.id = newPost_.id;
+      event.userId = newPost_.userId;
+      event.title = newPost_.title;
+      event.userName = newPost_.userName;
+      event.live = newPost_.live;
+      event.allocated = newPost_.allocated;
+      json jsonEvent = event;
 
-    Routes::LivePosts::cntLivePostMessage++;
-    mt_logging::logger().log(
-        {fmt::format(
-             " Sending to publish: Subject ({}) message made.",
-             LivePostsEvents::SubjectNames.at(event.subject)),
-         mt_logging::LogLevel::Debug,
-         true});
+      // Routes::LivePosts::cntLivePostMessage++;
+      // mt_logging::logger().log(
+      //     {fmt::format(
+      //          " Sending to publish: Subject ({}) message made.  Sending to produce: Subject ({}) message made.",
+      //          LivePostsEvents::SubjectNames.at(event.subject),
+      //          LivePostsEvents::SubjectNames.at(event.subject)),
+      //      mt_logging::LogLevel::Debug,
+      //      true});
 
-    ctx_.redis->publish(
-        std::string(LivePostsEvents::SubjectNames.at(event.subject)),
-        jsonEvent.dump());
+      ctx_.redis->publish(
+          std::string(LivePostsEvents::SubjectNames.at(event.subject)),
+          jsonEvent.dump());
+      ctx_.redis->produce(
+          std::string(LivePostsEvents::SubjectNames.at(event.subject)),
+          {std::pair<std::string, std::string>{"postId", std::to_string(newPost_.id)},
+           std::pair<std::string, std::string>{"title", newPost_.title}});
 
-    sendSuccess(resultBody_);
-    state_ = State::Done;
-    return;
+      sendSuccess(resultBody_);
+      state_ = State::Done;
+      return;
+    }
+    catch (const std::exception &e)
+    {
+      std::string err = e.what();
+      mt_logging::logger().log({err, mt_logging::LogLevel::Error, true});
+      sendError("COMMIT redis event failed: " + err);
+    }
   }
 
 }

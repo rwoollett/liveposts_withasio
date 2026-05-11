@@ -284,7 +284,6 @@ int main(int argc, char *argv[])
         pq_pool);
 
     restserver->get("/health", "", Routes::LivePosts::healthCheck);
-
     restserver->get("/api/v1/liveposts/homepage", "", Routes::LivePosts::homePage); // non DB just hard coded page data
 
     // Public url to fetch posts for the web
@@ -293,8 +292,9 @@ int main(int argc, char *argv[])
     restserver->put("/api/v1/liveposts/posts", "*", Routes::LivePosts::createPost);
 
     // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user
-    // restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost);
-    // restserver->put("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::stagePost);
+    //  restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost); IF using stream we can use the msg fields
+    restserver->put("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::stagePost);
+    
     // restserver->put("/api/v1/liveposts/users", "*", Routes::LivePosts::createUser); // this should only be server side done
     // restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Routes::LivePosts::findUserByAuthId);
     // restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", "*", Routes::LivePosts::findUserById);

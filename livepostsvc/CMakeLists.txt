@@ -6,6 +6,8 @@ add_executable(LivePostSvc
   routes/FetchPost.h
   routes/FetchPost.cpp
   routes/Routes.h
+  routes/StagePost.h
+  routes/StagePost.cpp
   prerender/Prerender.h
   prerender/Prerender.cpp
   main.cpp
