@@ -295,8 +295,8 @@ int main(int argc, char *argv[])
     //  restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost); IF using stream we can use the msg fields
     restserver->put("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::stagePost);
     
-    // restserver->put("/api/v1/liveposts/users", "*", Routes::LivePosts::createUser); // this should only be server side done
-    // restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Routes::LivePosts::findUserByAuthId);
+    restserver->put("/api/v1/liveposts/users", "*", Routes::LivePosts::createAuthor); // this should only be server side done
+    restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Routes::LivePosts::fetchAuthor);
     // restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", "*", Routes::LivePosts::findUserById);
 
     // Begin the rest server at tcp address/port ioc context in a thread pool (no. of threads in cmd arg)

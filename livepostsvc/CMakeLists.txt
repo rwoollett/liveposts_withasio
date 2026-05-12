@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
 
 add_executable(LivePostSvc
+  routes/CreateAuthor.h
+  routes/CreateAuthor.cpp
   routes/CreatePost.h
   routes/CreatePost.cpp
   routes/FetchPost.h
   routes/FetchPost.cpp
+  routes/FetchAuthor.h
+  routes/FetchAuthor.cpp
   routes/Routes.h
   routes/StagePost.h
   routes/StagePost.cpp

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "apiserver/HttpRoute.h"
+#include "CreateAuthor.h"
 #include "CreatePost.h"
+#include "FetchAuthor.h"
 #include "FetchPost.h"
 #include "RouteCommon.h"
 #include "StagePost.h"
@@ -42,6 +44,18 @@ namespace Routes
     inline void stagePost(RequestContext ctx)
     {
       auto op = std::make_shared<StagePostOp>(std::move(ctx));
+      op->start();
+    }
+
+    inline void createAuthor(RequestContext ctx)
+    {
+      auto op = std::make_shared<CreateAuthorOp>(std::move(ctx));
+      op->start();
+    }
+
+    inline void fetchAuthor(RequestContext ctx)
+    {
+      auto op = std::make_shared<FetchAuthorOp>(std::move(ctx));
       op->start();
     }
 
