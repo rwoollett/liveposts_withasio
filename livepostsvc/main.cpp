@@ -235,8 +235,10 @@ int main(int argc, char *argv[])
 
     mt_logging::logger().log(
         {.line = fmt::format(
-             "{} Listening on {}:{} [Threads:{}] [PQ DB Pool max {}]",
+             "{} Version: {} (build date {}). Listening on {}:{} [Threads:{}] [PQ DB Pool max {}]",
              MTLOG_LOGFILE,
+             GIT_COMMIT, 
+             BUILD_DATE, 
              address.to_string(),
              port, threads,
              Rest::PQClientPool::Config().max_size),

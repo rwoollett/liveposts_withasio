@@ -14,6 +14,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTS": "ON",
+        "GIT_COMMIT": "development",
+        "BUILD_DATE": "today",
         "CMAKE_INSTALL_PREFIX": "/usr/local"
       }
     },
@@ -26,6 +28,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "BUILD_TESTS": "ON",
+        "GIT_COMMIT": "development",
+        "BUILD_DATE": "today",
         "CMAKE_INSTALL_PREFIX": "/usr/local"
       }
     },
@@ -38,6 +42,8 @@
       "binaryDir": "${sourceDir}/build/tsan",
       "cacheVariables": {
         "BUILD_TESTS": "ON",
+        "GIT_COMMIT": "development",
+        "BUILD_DATE": "today",
         "CMAKE_BUILD_TYPE": "TSAN",
         "CMAKE_CXX_FLAGS": "-fsanitize=thread -O1 -g -fno-omit-frame-pointer",
         "CMAKE_C_FLAGS": "-fsanitize=thread -O1 -g -fno-omit-frame-pointer",

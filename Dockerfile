@@ -33,6 +33,9 @@ FROM livepostsvc_boost AS livepostsvc_builder
 COPY . /usr/src
 
 ARG version=v22.21.1
+ARG GIT_COMMIT
+ARG BUILD_DATE
+
 RUN cd posts-vite-app; \
     export PATH=$PATH:/node-$version-linux-x64/bin; \
     npm install; \
@@ -41,13 +44,27 @@ RUN cd posts-vite-app; \
 # Build the project using CMake
 RUN mkdir -p build; \
     cd build; \
-    cmake .. -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release; \
+    cmake .. \
+    -DGIT_COMMIT=${GIT_COMMIT} \
+    -DBUILD_DATE=${BUILD_DATE} \
+    -DBUILD_TESTS=OFF \
+    -DCMAKE_BUILD_TYPE=Release; \
     cd ..; cmake --build build --target LivePostSvc; \
     cd build; make install
 
 RUN strip /usr/local/bin/LivePostSvc
 
 FROM livepostsvc_base AS livepostsvc_runtime
+
+ARG GIT_COMMIT
+ARG GIT_BRANCH
+ARG GIT_DIRTY
+ARG BUILD_DATE
+
+LABEL org.opencontainers.image.revision=$GIT_COMMIT
+LABEL org.opencontainers.image.source-branch=$GIT_BRANCH
+LABEL org.opencontainers.image.dirty=$GIT_DIRTY
+LABEL org.opencontainers.image.created=$BUILD_DATE
 
 COPY --from=livepostsvc_builder /usr/local/bin /usr/local/bin
 COPY --from=livepostsvc_builder /usr/src/posts-vite-app /posts-vite-app

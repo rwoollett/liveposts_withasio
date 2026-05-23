@@ -36,6 +36,15 @@ cmake --build build --target LivePostSvc
 
 docker build -t livepostsvc:v1.0 .
 
+docker build \
+  --build-arg GIT_COMMIT=$(git rev-parse HEAD) \
+  --build-arg GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD) \
+  --build-arg GIT_DIRTY=$(test -n "$(git status --porcelain)" && echo dirty || echo clean) \
+  --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+  -t livepostsvc:v1.0 .
+
+docker inspect livepostsvc:v1.0 | jq '.[0].Config.Labels'
+
 # sample env for livepostsvc container
 
 docker run -d -p3011:3011 --network="host" --env TTTDB_USER=postgres --env TTTDB_PASSWORD=&lt;password&gt; livepostsvc:v1.0

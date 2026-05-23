@@ -17,7 +17,15 @@ add_executable(LivePostSvc
   main.cpp
 )
 
-target_compile_definitions(LivePostSvc PUBLIC JWT_DISABLE_PICOJSON=1)
+target_compile_definitions(LivePostSvc 
+  PUBLIC
+   JWT_DISABLE_PICOJSON=1
+  PRIVATE 
+    GIT_COMMIT="${GIT_COMMIT}"
+    GIT_BRANCH="${GIT_BRANCH}"
+    GIT_DIRTY="${GIT_DIRTY}"
+    BUILD_DATE="${BUILD_DATE}"   
+)
 
 target_include_directories(
   LivePostSvc PUBLIC
