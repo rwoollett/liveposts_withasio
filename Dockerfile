@@ -3,7 +3,7 @@
 
 FROM debian:12.13 AS livepostsvc_base
 
-RUN apt update -y;  
+RUN apt update -y --fix-missing;  
 ARG version=v22.21.1
 RUN apt install -y curl openssl libssl-dev zlib1g-dev libpq-dev \
     && curl -fsSL https://nodejs.org/dist/$version/node-$version-linux-x64.tar.gz -o node.tar.gz \
