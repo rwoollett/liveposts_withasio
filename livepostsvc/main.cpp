@@ -8,7 +8,7 @@
 #include <thread>
 #include <chrono>
 #include "routes/Routes.h"
-#include <pubsub/publish/Publish.h> // RedisPublish class
+#include <redis_pubsub/publish/Publish.h> // RedisPublish class
 #include <mtlog/mt_log.hpp>
 #include <boost/redis/src.hpp> // boost redis implementation
 #include <filesystem>
@@ -235,10 +235,9 @@ int main(int argc, char *argv[])
 
     mt_logging::logger().log(
         {.line = fmt::format(
-             "{} Version: {} (build date {}). Listening on {}:{} [Threads:{}] [PQ DB Pool max {}]",
+             "{} Version: {}. Listening on {}:{} [Threads:{}] [PQ DB Pool max {}]",
              MTLOG_LOGFILE,
              GIT_COMMIT, 
-             BUILD_DATE, 
              address.to_string(),
              port, threads,
              Rest::PQClientPool::Config().max_size),

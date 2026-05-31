@@ -4,7 +4,6 @@ project(
   DESCRIPTION "Http/Rest Service for Live Posts."
   LANGUAGES CXX C
 )
-
 # --- TSAN build type ---
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_FLAGS_TSAN "-O1 -g -fsanitize=thread -fno-omit-frame-pointer")
@@ -26,7 +25,19 @@ set(Boost_USE_RELEASE_LIBS ON)
 set(BOOST_ROOT /usr/local)
 find_package(Boost 1.86 REQUIRED COMPONENTS program_options url)
 find_package(Threads)
+
+# ----------------------------------------
+# Dependencies (installed packages)
+# ----------------------------------------
+find_package(RwllttNet REQUIRED)          # Provides RwllttNet::APIServer
+find_package(WorkQStream REQUIRED)        # Provides WorkQStream::WorkQProduce/Consume
+find_package(RedisPubSub REQUIRED)        # Provides RedisPubSub::RedisPublish/Subscribe
+find_package(MTLog REQUIRED)
+find_package(fmt REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(jwt-cpp REQUIRED)
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBPQ REQUIRED libpq)
 
@@ -34,7 +45,6 @@ if(LIBPQ_FOUND)
   message("-- libpq found via pkg-config")
   message("-- Include dirs: ${LIBPQ_INCLUDE_DIRS}")
   message("-- Libraries: ${LIBPQ_LIBRARIES}")
-  message("-- CFLAGS: ${LIBPQ_CFLAGS_OTHER}")
   add_compile_definitions(LIBPQ_FOUND)
 else()
   message(FATAL_ERROR "libpq not found via pkg-config")
@@ -45,13 +55,6 @@ if(Boost_FOUND)
 endif()
 
 include(FetchContent)
-
-FetchContent_Declare(
-  nlohmann_json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG v3.11.3
-)
-FetchContent_MakeAvailable(nlohmann_json)
 
 FetchContent_Declare(
   Timestamp
@@ -67,55 +70,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(livepostsmodel)
 
-FetchContent_Declare(
-  jwt-cpp
-  GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
-  GIT_TAG v0.7.0
-)
-set(JWT_BUILD_EXAMPLES OFF CACHE BOOL "disable building examples" FORCE)
-FetchContent_MakeAvailable(jwt-cpp)
-
-FetchContent_Declare(
-  RedisPubSub
-  GIT_REPOSITORY https://github.com/rwoollett/redis_pubsub.git
-  GIT_TAG master
-)
-FetchContent_MakeAvailable(RedisPubSub)
-
-FetchContent_Declare(
-  WorkQStream
-  GIT_REPOSITORY https://github.com/rwoollett/redis_stream.git
-  GIT_TAG master
-)
-FetchContent_MakeAvailable(WorkQStream)
-
-
-message(${RedisPubSub_SOURCE_DIR})
 
 target_link_libraries(LivePostsModel PUBLIC nlohmann_json::nlohmann_json Timestamp ${LIBPQ_LIBRARIES})
 target_include_directories(LivePostsModel PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
-target_link_libraries(WorkQProduce PUBLIC
-  nlohmann_json::nlohmann_json 
-)
-target_link_libraries(WorkQConsume PUBLIC
-  nlohmann_json::nlohmann_json 
-)
 
-add_subdirectory(apiserver)
-target_link_libraries(APIServer PUBLIC
-  nlohmann_json::nlohmann_json 
-  ${LIBPQ_LIBRARIES}
-  jwt-cpp::jwt-cpp
-  RedisPubSub::RedisPublish
-  RedisPubSub::RedisSubscribe
-  WorkQStream::WorkQProduce
-  WorkQStream::WorkQConsume  
-)
-target_include_directories(APIServer PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLUDE_DIRS}>)
-
+# ----------------------------------------
+# Service executable
+# ----------------------------------------
 add_subdirectory(livepostsvc)
 
-option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_TESTS "Build tests" ON)
 
 if(BUILD_TESTS)
   add_subdirectory(cpputest)

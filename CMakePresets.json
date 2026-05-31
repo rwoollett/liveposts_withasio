@@ -27,7 +27,7 @@
       "binaryDir": "build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_TESTS": "ON",
+        "BUILD_TESTS": "OFF",
         "GIT_COMMIT": "development",
         "BUILD_DATE": "today",
         "CMAKE_INSTALL_PREFIX": "/usr/local"

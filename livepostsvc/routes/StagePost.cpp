@@ -3,7 +3,7 @@
 #include "apiserver/Session.h"
 #include "apiserver/PQClient.h"
 #include "apiserver/Response.h"
-#include <pubsub/publish/Publish.h>
+#include <redis_pubsub/publish/Publish.h>
 #include <nlohmann/json.hpp>
 #include <mtlog/mt_log.hpp>
 #include "livepostsmodel/pq.h"

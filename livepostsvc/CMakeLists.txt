@@ -27,21 +27,17 @@ target_compile_definitions(LivePostSvc
     BUILD_DATE="${BUILD_DATE}"   
 )
 
+
 target_include_directories(
   LivePostSvc PUBLIC
   ${LIBPQ_INCLUDE_DIRS}
-  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
   $<BUILD_INTERFACE:${Boost_INCLUDE_DIR}>
-  $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(
   LivePostSvc PUBLIC
   Boost::program_options
   Boost::url
-  APIServer
+  RwllttNet::APIServer
   LivePostsModel
 )
-
-get_target_property(dirs LivePostsModel INTERFACE_INCLUDE_DIRECTORIES)
-message(STATUS "Include dirs: ${dirs}")
