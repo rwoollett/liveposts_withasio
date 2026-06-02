@@ -30,22 +30,33 @@ namespace Routes::LivePosts
 
   bool FetchPostOp::parseReq()
   {
+    // Build paramStrings_ (owned)
+    paramStrings_.clear();
+    paramStrings_.push_back(std::to_string(true));
+
+    // Build paramValues_
     paramValues_.clear();
-    paramLengths_.clear();
-    paramFormats_.clear();
+    for (auto &s : paramStrings_)
+      paramValues_.push_back(s.c_str());
+
+    // lengths + formats
+    paramLengths_.assign(paramStrings_.size(), 0);
+    paramFormats_.assign(paramStrings_.size(), 0);
+
     return true;
   }
 
   void FetchPostOp::doWork()
   {
     auto self = shared_from_this();
-
-    ctx_.db->asyncExec(
+    ctx_.db->asyncExecParams(
         sql,
+        paramValues_,
+        paramLengths_,
+        paramFormats_,
+        static_cast<int>(paramValues_.size()),
         [self](PGresult *res)
-        {
-          self->onWorkResult(res);
-        });
+        { self->onWorkResult(res); });
   }
 
   void FetchPostOp::onWorkResult(PGresult *res)

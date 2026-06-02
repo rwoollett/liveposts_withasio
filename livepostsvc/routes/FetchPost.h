@@ -44,7 +44,8 @@ namespace Routes::LivePosts
                                        "\"Posts\".\"id\", \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
                                        "\"allocated\", \"live\", "
                                        "\"Users\".\"name\" AS \"userName\" "
-                                       "FROM \"Posts\" LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\""
+                                       "FROM \"Posts\" LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\" "
+                                       "WHERE \"live\"=$1 "
                                        ";";
   };
 }

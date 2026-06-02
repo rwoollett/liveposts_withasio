@@ -51,6 +51,7 @@ namespace Routes::LivePosts
     paramStrings_.push_back(post_.title);
     paramStrings_.push_back(post_.content);
     paramStrings_.push_back(std::to_string(post_.userId));
+    paramStrings_.push_back(std::to_string(false));
 
     // Build paramValues_
     paramValues_.clear();
