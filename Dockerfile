@@ -1,98 +1,11 @@
 # The new base image to contain runtime dependencies
-# Dependencies: Boost >= 1.86
 
 FROM debian:12.13 AS runtime_base
 
 RUN apt update -y --fix-missing;  
 RUN apt install -y curl openssl libssl-dev zlib1g-dev libpq-dev iputils-ping netcat-traditional;
 
-FROM runtime_base AS build_boost
-
-RUN apt install -y git build-essential cmake pkg-config nlohmann-json3-dev;
-
-WORKDIR /usr/src
-
-# Install Boost 1.86 or later
-COPY boost_1_86_0.tar.gz /usr/src
-
-RUN BOOST_VERSION=1.86.0; \
-    BOOST_DIR=boost_1_86_0; \
-    tar -xvf boost_1_86_0.tar.gz; \
-    cd ${BOOST_DIR}; \
-    ./bootstrap.sh --prefix=/usr/local; \
-    ./b2 link=static --with-headers --with-system --with-thread --with-date_time --with-regex --with-serialization --with-program_options --with-url install; \
-    cd ..; \
-    rm -rf ${BOOST_DIR} ${BOOST_DIR}.tar.gz
-
-FROM build_boost AS system_wide_dependencies
-# Insert system wide installs for RwllttNet::APIServer
-# RwllttNet depends on MTLog, which depends on fmt::fmt
-# RwllttNet depends on finding packages: jwt-cpp, redis_pubsub and redis_stream(WorkQStream)
-WORKDIR /usr/src
-
-# Trust GitLab host key
-RUN mkdir -p /root/.ssh && \
-    chmod 700 /root/.ssh && \
-    ssh-keyscan gitlab.com >> /root/.ssh/known_hosts
-# Trust GitHub host key
-RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
-
-# Fmt (public repo)
-ARG FMT_COMMIT=unknown
-RUN rm -rf fmt && \
-    git clone --depth=1 https://github.com/fmtlib/fmt.git && \
-    cd fmt && git checkout $FMT_COMMIT && \
-    cmake -B build \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DFMT_TEST=OFF \
-    -DFMT_DOC=OFF \
-    -DFMT_FUZZ=OFF \
-    -DFMT_BENCHMARK=OFF \
-    -DFMT_INSTALL=ON && \
-    cmake --build build --target install
-
-# jwt-cpp (public repo)
-ARG JWT_CPP_COMMIT=unknown
-RUN rm -rf jwt-cpp && \
-    git clone --depth=1 https://github.com/Thalhammer/jwt-cpp.git && \
-    cd jwt-cpp && git checkout $JWT_CPP_COMMIT && \
-    cmake -B build -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build build --target install
-
-# MTLog (private repo)
-ARG MTLOG_COMMIT=unknown
-RUN --mount=type=ssh rm -rf mtlog && \
-    git clone --depth=1 git@github.com:rwoollett/mtlog.git && \
-    cd mtlog && git checkout $MTLOG_COMMIT && \
-    cmake -B build-release -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build build-release --target install
-
-# Redis PubSub
-ARG REDIS_PUBSUB_COMMIT=unknown
-RUN --mount=type=ssh rm -rf redis_pubsub && \
-    git clone --depth=1 git@github.com:rwoollett/redis_pubsub.git && \
-    cd redis_pubsub && git checkout $REDIS_PUBSUB_COMMIT && \
-    cmake -B build-release -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build build-release --target install
-
-# Redis Stream (WorkQStream)
-ARG REDIS_STREAM_COMMIT=unknown
-RUN --mount=type=ssh rm -rf redis_stream && \
-    git clone --depth=1 git@github.com:rwoollett/redis_stream.git && \
-    cd redis_stream && git checkout $REDIS_STREAM_COMMIT && \
-    cmake -B build-release -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build build-release --target install
-
-# APIServer (private repo)
-ARG APISERVER_COMMIT=unknown
-RUN --mount=type=ssh rm -rf apiserver && \
-    git clone --depth=1 git@github.com:rwoollett/apiserver.git && \
-    cd apiserver && git checkout $APISERVER_COMMIT && \
-    cmake -B build-release -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build build-release --target install
-
-
-FROM system_wide_dependencies AS livepostsvc_builder
+FROM netprocdependencies:v1.0 AS livepostsvc_builder
 
 COPY . /usr/src
 
