@@ -5,7 +5,7 @@ FROM debian:12.13 AS runtime_base
 RUN apt update -y --fix-missing;  
 RUN apt install -y curl openssl libssl-dev zlib1g-dev libpq-dev iputils-ping netcat-traditional;
 
-FROM netprocdependencies:v1.0 AS livepostsvc_builder
+FROM netprocdependencies:1.1 AS livepostsvc_builder
 
 COPY . /usr/src
 
