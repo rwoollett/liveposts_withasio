@@ -7,10 +7,6 @@ if [ -z "${SSH_AUTH_SOCK:-}" ]; then
 fi
 echo $SSH_AUTH_SOCK
 
-# Load GitLab key if not loaded
-if ! ssh-add -l | grep -q "gitlab"; then
-    ssh-add ~/.ssh/gitlab
-fi
 # Load GitHub key if not loaded
 if ! ssh-add -l | grep -q "github"; then
     ssh-add ~/.ssh/id_ed25519

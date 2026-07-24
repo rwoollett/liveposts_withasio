@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
     cfg.user = std::string(apidb_user);
     cfg.password = std::string(apidb_password);
     cfg.port = std::string(apidb_port);
-    auto pq_pool = std::make_shared<PQClientPool>(cfg);
+    auto pq_pool = std::make_shared<PQClientPool>(ioc, cfg);
 
     auto restserver = std::make_shared<RestServer>(
         ioc,
