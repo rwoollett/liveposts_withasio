@@ -137,7 +137,7 @@ namespace Routes::LivePosts
       event.slug = updatedPostStage_.slug;
       json jsonEvent = event;
       ctx_.redis->publish(
-          std::string(LivePostsEvents::SubjectNames.at(event.subject)),
+          std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
           jsonEvent.dump());
 
       sendSuccess(root.dump());

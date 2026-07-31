@@ -190,6 +190,7 @@ int main(int argc, char *argv[])
     const char *redis_host = std::getenv("REDIS_HOST");
     const char *redis_port = std::getenv("REDIS_PORT");
     const char *redis_channel = std::getenv("REDIS_CHANNEL");
+    const char *redis_gateway_channel = std::getenv("REDIS_GATEWAY_CHANNEL");
     const char *redis_password = std::getenv("REDIS_PASSWORD");
 
     if (jwt_secret_key == nullptr || authorised_user == nullptr)
@@ -212,9 +213,9 @@ int main(int argc, char *argv[])
     }
     auto dbport = static_cast<uint16_t>(std::atoi(apidb_port));
 
-    if (!(redis_host && redis_port && redis_password && redis_channel))
+    if (!(redis_host && redis_port && redis_password && redis_channel && redis_gateway_channel))
     {
-      std::cerr << "Environment variables REDIS_CHANNEL, REDIS_HOST, REDIS_PORT or REDIS_PASSWORD are not set." << std::endl;
+      std::cerr << "Environment variables REDIS_CHANNEL, REDIS_GATEWAY_CHANNEL, REDIS_HOST, REDIS_PORT or REDIS_PASSWORD are not set." << std::endl;
       return EXIT_FAILURE;
     }
 
@@ -237,7 +238,7 @@ int main(int argc, char *argv[])
         {.line = fmt::format(
              "{} Version: {}. Listening on {}:{} [Threads:{}] [PQ DB Pool max {}]",
              MTLOG_LOGFILE,
-             GIT_COMMIT, 
+             GIT_COMMIT,
              address.to_string(),
              port, threads,
              Rest::PQClientPool::Config().max_size),
@@ -295,7 +296,7 @@ int main(int argc, char *argv[])
     // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user
     //  restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost); IF using stream we can use the msg fields
     restserver->put("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::stagePost);
-    
+
     restserver->put("/api/v1/liveposts/users", "*", Routes::LivePosts::createAuthor); // this should only be server side done
     restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Routes::LivePosts::fetchAuthor);
     // restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", "*", Routes::LivePosts::findUserById);

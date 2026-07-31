@@ -179,18 +179,6 @@ namespace Routes::LivePosts
       event.allocated = newPost_.allocated;
       json jsonEvent = event;
 
-      // Routes::LivePosts::cntLivePostMessage++;
-      // mt_logging::logger().log(
-      //     {fmt::format(
-      //          " Sending to publish: Subject ({}) message made.  Sending to produce: Subject ({}) message made.",
-      //          LivePostsEvents::SubjectNames.at(event.subject),
-      //          LivePostsEvents::SubjectNames.at(event.subject)),
-      //      mt_logging::LogLevel::Debug,
-      //      true});
-
-      ctx_.redis->publish(
-          std::string(LivePostsEvents::SubjectNames.at(event.subject)),
-          jsonEvent.dump());
       ctx_.redis->produce(
           std::string(LivePostsEvents::SubjectNames.at(event.subject)),
           {std::pair<std::string, std::string>{"postId", std::to_string(newPost_.id)},
