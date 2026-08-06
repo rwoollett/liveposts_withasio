@@ -14,7 +14,7 @@ Dependencie on git repo apiserver as a submodule:
  git submodule add git@github.com:rwoollett/apiserver.git
 ```
 ## Post Static generation
-Dependency on git repo posts-vite-app as a submodule
+Dependency on git repo posts-vite-app as a submodule (mandite 9.5)
 ```
  git submodule add git@github.com:rwoollett/posts-vite-app.git
 ```
