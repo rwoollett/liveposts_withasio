@@ -159,6 +159,19 @@ namespace Routes
                       });
         return;
       }
+      catch (const std::exception &e)
+      {
+        mt_logging::logger().log(
+            {e.what(),
+             mt_logging::LogLevel::Debug,
+             true});
+        net::dispatch(strand,
+                      [ctx = std::move(ctx), msg = std::move(e.what())]() mutable
+                      {
+                        ctx.send(Rest::Response::server_error(ctx.req, "Publish producer error"));
+                      });
+        return;
+      }
       catch (const std::string &e)
       {
         net::dispatch(strand,
