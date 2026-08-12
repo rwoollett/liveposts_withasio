@@ -172,11 +172,7 @@ namespace Routes::LivePosts
     {
       LivePostsEvents::PostCreateEvent event;
       event.id = newPost_.id;
-      event.userId = newPost_.userId;
       event.title = newPost_.title;
-      event.userName = newPost_.userName;
-      event.live = newPost_.live;
-      event.allocated = newPost_.allocated;
       json jsonEvent = event;
 
       ctx_.redis->produce(
