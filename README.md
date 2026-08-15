@@ -40,6 +40,13 @@ It is built in the docker image. Using npm install in the subfolder post-vite-ap
 
   `cmake --build build/debug --target LivePostSvc`
 
+### Reflex usage
+```
+reflex -r '(^latest/.*)|^(apiserver/.*\.(cpp|h)|livepostsvc/.*\.(cpp|h))$|CMakeLists\.txt' \
+  -s -- ./reflex-build.sh
+```
+
+
 ## Docker container
 
 ### Build image
