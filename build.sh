@@ -21,11 +21,15 @@ GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 GIT_DIRTY=$(test -n "$(git status --porcelain)" && echo "dirty" || echo "clean")
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+APISERVER_COMMIT=$(git ls-remote git@github.com:rwoollett/apiserver.git HEAD | awk '{print $1}')
+
+
 echo "Building Docker image:"
 echo "  Commit: $GIT_COMMIT"
 echo "  Branch: $GIT_BRANCH"
 echo "  Dirty:  $GIT_DIRTY"
 echo "  Date:   $BUILD_DATE"
+echo "  APIserver:   $APISERVER_COMMIT"
 echo
 
 # --- Build image with metadata ---
@@ -35,6 +39,7 @@ DOCKER_BUILDKIT=1 docker build \
   --build-arg GIT_BRANCH="$GIT_BRANCH" \
   --build-arg GIT_DIRTY="$GIT_DIRTY" \
   --build-arg BUILD_DATE="$BUILD_DATE" \
+  --build-arg APISERVER_COMMIT="$APISERVER_COMMIT" \
   -t "$IMAGE_NAME:$IMAGE_TAG" \
   .
 

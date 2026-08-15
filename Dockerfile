@@ -42,10 +42,12 @@ ARG GIT_COMMIT
 ARG GIT_BRANCH
 ARG GIT_DIRTY
 ARG BUILD_DATE
+ARG APISERVER_COMMIT
 LABEL org.opencontainers.image.revision=$GIT_COMMIT
 LABEL org.opencontainers.image.source-branch=$GIT_BRANCH
 LABEL org.opencontainers.image.dirty=$GIT_DIRTY
 LABEL org.opencontainers.image.created=$BUILD_DATE
+LABEL org.opencontainers.image.api-revision=$APISERVER_COMMIT
 
 WORKDIR /usr/src 
 
