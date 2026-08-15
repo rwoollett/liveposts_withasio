@@ -8,13 +8,9 @@ The API also has websocket for subscription to events made from the API for even
 when a players move is processed and a new board is pushed to the clients application interface.
 
 <br/>
-## Api Server
-Dependencie on git repo apiserver as a submodule:
-```
- git submodule add git@github.com:rwoollett/apiserver.git
-```
+
 ## Post Static generation
-Dependency on git repo posts-vite-app as a submodule (mandite 9.5)
+Dependency on git repo posts-vite-app as a submodule (React/Vite/Mandite 9.5)
 ```
  git submodule add git@github.com:rwoollett/posts-vite-app.git
 ```
@@ -24,13 +20,21 @@ This is built in the docker image. Using npm install in the subfolder post-vite-
 
 ## CMake builder
 
-## Create a cmake build folder:
+### Create the cmake build folder
 
-cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/usr/local -G "Unix Makefiles" . -B ./build
+- Release: 
+
+  `cmake -B build/release -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF`
+
+- Debug:   
+
+  `cmake -B build/debug -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON`
 
 ## Use the built package to test:
 
-cmake --build build --target LivePostSvc
+- Debug:
+
+  `cmake --build build/debug --target LivePostSvc`
 
 ## Docker container
 
@@ -163,26 +167,21 @@ This is the structure of the files in the project:
     ├── cpputest             # load test source files
     │   ├── CMakeLists.txt
     │   ├── load.cpp
-    │   ├── load.h
-    │   └── main.cpp
+    │   └── load.h
     ├── livepostsvc          # Service source files
-    │   ├── model            # Client CS data structures
-    │   ├── nholmann         # JSON header
+    │   ├── prerender        # Prerender generation
     │   ├── routes           # Route registered in ClientCS api
     │   ├── CMakeLists.txt
-    │   ├── main.cpp         # Main entry point to start server
-    │   └── *.cpp/*.h
-    ├── apiserver            # API server library base for a API service
-    │   ├── model            # Client CS data structures
-    │   ├── nholmann         # JSON header
-    │   ├── routes           # Route registered in ClientCS api
-    │   ├── CMakeLists.txt
-    │   ├── main.cpp         # Main entry point to start server
-    │   └── *.cpp/*.h
+    │   └── main.cpp         # Main entry point to start server
+    ├── posts-vite-app       # Prerender static html
     ├── .dockerignore
     ├── .gitignore
-    ├── api.http
-    ├── docker-compose.yml
+    ├── bash_env.sh
+    ├── build.sh
+    ├── CMakeLists.txt
+    ├── CMakePresets.json
     ├── Dockerfile
+    ├── Dockerfile.dev # *NB*: Only available if file reflex_linux_amd64.tar.gz (Reflex building)
     └── README.md
 ```
+*__<sup>NB</sup>__* Dockerfile.dev only for Reflex building. File reflex_linux_amd64.tar.gz is required.
