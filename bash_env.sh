@@ -33,6 +33,7 @@ export NODE_PATH=/home/rwlltt/.nvm/versions/node/v22.23.1/bin/node
 export PRERENDER_SCRIPT=./posts-vite-app/scripts/prerenderhydrate.mjs
 export APIDB_HOST=localhost
 export APIDB_PORT=5440
+export MTLOG_LEVEL=debug
 
 
 

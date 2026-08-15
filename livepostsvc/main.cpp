@@ -285,21 +285,21 @@ int main(int argc, char *argv[])
         wsclient_manager,
         pq_pool);
 
-    restserver->get("/health", "", Routes::LivePosts::healthCheck);
-    restserver->get("/api/v1/liveposts/homepage", "", Routes::LivePosts::homePage); // non DB just hard coded page data
+    restserver->get("/health", "", Rest::DbRequirement::Required, Routes::LivePosts::healthCheck);
+    restserver->get("/api/v1/liveposts/homepage", "", Rest::DbRequirement::Required, Routes::LivePosts::homePage); // non DB just hard coded page data
 
     // Public url to fetch posts for the web
-    restserver->get("/api/v1/liveposts/posts", "", Routes::LivePosts::fetchPosts);
+    restserver->get("/api/v1/liveposts/posts", "", Rest::DbRequirement::Required, Routes::LivePosts::fetchPosts);
     // User auth req. Create user at liveposts service for the actual logged in user.
-    restserver->put("/api/v1/liveposts/posts", "*", Routes::LivePosts::createPost);
-    restserver->put("/api/v1/liveposts/moderate", "*", Routes::LivePosts::moderate);
+    restserver->put("/api/v1/liveposts/posts", "*", Rest::DbRequirement::Required, Routes::LivePosts::createPost);
+    restserver->put("/api/v1/liveposts/moderate", "*", Rest::DbRequirement::Required, Routes::LivePosts::moderate);
 
     // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user
     //  restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost); IF using stream we can use the msg fields
-    restserver->put("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::stagePost);
+    restserver->put("/api/v1/liveposts/stage/post", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::stagePost);
 
-    restserver->put("/api/v1/liveposts/users", "*", Routes::LivePosts::createAuthor); // this should only be server side done
-    restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Routes::LivePosts::fetchAuthor);
+    restserver->put("/api/v1/liveposts/users", "*", Rest::DbRequirement::Required, Routes::LivePosts::createAuthor); // this should only be server side done
+    restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Rest::DbRequirement::Required, Routes::LivePosts::fetchAuthor);
     // restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", "*", Routes::LivePosts::findUserById);
 
     // Begin the rest server at tcp address/port ioc context in a thread pool (no. of threads in cmd arg)
