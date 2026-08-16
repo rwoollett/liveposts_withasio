@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
 
     restserver->put("/api/v1/liveposts/users", "*", Rest::DbRequirement::Required, Routes::LivePosts::createAuthor); // this should only be server side done
     restserver->get("/api/v1/liveposts/user/fetchbyauthid/{authId}", "*", Rest::DbRequirement::Required, Routes::LivePosts::fetchAuthor);
-    // restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", "*", Routes::LivePosts::findUserById);
+    //     restserver->get("/api/v1/liveposts/user/fetchbyid/{id}", "*", Routes::LivePosts::findUserById);
 
     // Begin the rest server at tcp address/port ioc context in a thread pool (no. of threads in cmd arg)
     restserver->run();
