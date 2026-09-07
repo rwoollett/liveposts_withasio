@@ -23,7 +23,7 @@ set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_DEBUG_LIBS OFF)
 set(Boost_USE_RELEASE_LIBS ON)
 set(BOOST_ROOT /usr/local)
-find_package(Boost 1.86 REQUIRED COMPONENTS program_options url)
+find_package(Boost 1.91 REQUIRED COMPONENTS program_options url)
 find_package(Threads)
 
 # ----------------------------------------
@@ -51,7 +51,7 @@ else()
 endif()
 
 if(Boost_FOUND)
-  message("-- Boost 1.86 found, using ${Boost_INCLUDE_DIR}")
+  message("-- Boost 1.91 found, using ${Boost_INCLUDE_DIR}")
 endif()
 
 include(FetchContent)

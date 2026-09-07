@@ -285,8 +285,8 @@ int main(int argc, char *argv[])
         wsclient_manager,
         pq_pool);
 
-    restserver->get("/health", "", Rest::DbRequirement::Required, Routes::LivePosts::healthCheck);
-    restserver->get("/api/v1/liveposts/homepage", "", Rest::DbRequirement::Required, Routes::LivePosts::homePage); // non DB just hard coded page data
+    restserver->get("/health", "", Rest::DbRequirement::None, Routes::LivePosts::healthCheck);
+    restserver->get("/api/v1/liveposts/homepage", "", Rest::DbRequirement::None, Routes::LivePosts::homePage); // non DB just hard coded page data
 
     // Public url to fetch posts for the web
     restserver->get("/api/v1/liveposts/posts", "", Rest::DbRequirement::Required, Routes::LivePosts::fetchPosts);
