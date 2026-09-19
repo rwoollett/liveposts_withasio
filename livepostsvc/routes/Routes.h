@@ -135,6 +135,7 @@ namespace Routes
         LivePostsEvents::ModerateJobEvent event;
         event.id = moderation.id;
         event.userId = moderation.userId;
+        event.seq = moderation.seq;
         event.value = moderation.value;
         root["moderateValue"] = moderation;
         result.assign(root.dump());
@@ -150,6 +151,7 @@ namespace Routes
             std::string(LivePostsEvents::SubjectNames.at(event.subject)),
             {std::pair<std::string, std::string>{"id", moderation.id},
              std::pair<std::string, std::string>{"userId", moderation.userId},
+             std::pair<std::string, std::string>{"seq", std::to_string(moderation.seq)},
              std::pair<std::string, std::string>{"value", moderation.value}});
 
         net::dispatch(strand,
