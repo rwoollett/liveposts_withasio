@@ -135,6 +135,8 @@ namespace Routes::LivePosts
       LivePostsEvents::PostStageEvent event;
       event.id = updatedPostStage_.id;
       event.slug = updatedPostStage_.slug;
+      //event.draftId = updatedPostStage_.
+      //event.userId = ws user userId.
       json jsonEvent = event;
       ctx_.redis->publish(
           std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
