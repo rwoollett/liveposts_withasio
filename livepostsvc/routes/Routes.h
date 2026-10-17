@@ -134,7 +134,7 @@ namespace Routes
 
         LivePostsEvents::ModerateJobEvent event;
         event.id = moderation.id;
-        event.userId = moderation.userId;
+        event.wsId = moderation.wsId;
         event.seq = moderation.seq;
         event.value = moderation.value;
         root["moderateValue"] = moderation;
@@ -150,7 +150,7 @@ namespace Routes
         ctx.redis->produce(
             std::string(LivePostsEvents::SubjectNames.at(event.subject)),
             {std::pair<std::string, std::string>{"id", moderation.id},
-             std::pair<std::string, std::string>{"userId", moderation.userId},
+             std::pair<std::string, std::string>{"wsId", moderation.wsId},
              std::pair<std::string, std::string>{"seq", std::to_string(moderation.seq)},
              std::pair<std::string, std::string>{"value", moderation.value}});
 

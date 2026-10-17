@@ -42,10 +42,10 @@ namespace Routes::LivePosts
 
     static constexpr const char *sql = "SELECT "
                                        "\"Posts\".\"id\", \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
-                                       "\"allocated\", \"live\", "
+                                       "\"allocated\", \"status\", "
                                        "\"Users\".\"name\" AS \"userName\" "
                                        "FROM \"Posts\" LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\" "
-                                       "WHERE \"live\"=$1 "
+                                       "WHERE \"status\"=$1 "
                                        ";";
   };
 }

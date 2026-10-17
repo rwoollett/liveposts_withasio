@@ -53,7 +53,7 @@ namespace Routes::LivePosts
 
     // Build paramStrings_ (owned)
     paramStrings_.clear();
-    paramStrings_.push_back(std::to_string(stagePostInput_.live));
+    paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::Live));
     paramStrings_.push_back(slug);
     paramStrings_.push_back(std::to_string(stagePostInput_.postId));
 
@@ -132,15 +132,25 @@ namespace Routes::LivePosts
       Prerender::prerenderPost(jsonPost.dump());
       root["stagePost"] = updatedPostStage_;
 
-      LivePostsEvents::PostStageEvent event;
-      event.id = updatedPostStage_.id;
-      event.slug = updatedPostStage_.slug;
-      //event.draftId = updatedPostStage_.
-      //event.userId = ws user userId.
-      json jsonEvent = event;
+      LivePostsEvents::PostStageEvent eventStage;
+      eventStage.id = updatedPostStage_.id;
+      eventStage.slug = updatedPostStage_.slug;
+
+      json jsonEvent = eventStage;
       ctx_.redis->publish(
           std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
           jsonEvent.dump());
+
+      // LivePostsEvents::PostPublishedEvent eventPublish;
+      // eventPublish.postId = updatedPostStage_.id;
+      // eventPublish.postId = updatedPostStage_.id;
+      // eventPublish.slug = updatedPostStage_.slug;
+      // eventPublish.wsId = updatedPostStage_.id;
+
+      // json jsonEvent = eventPublish;
+      // ctx_.redis->publish(
+      //     std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
+      //     jsonEvent.dump());
 
       sendSuccess(root.dump());
     }

@@ -30,7 +30,7 @@ namespace Routes::LivePosts
     void onCommit(PGresult *res) override;
 
   private:
-    LivePostsModel::Post post_;
+    LivePostsModel::PostCreate postCreate_; // TODO needs a PostCreate structure so to send websocket user, which is not to do with Post
     LivePostsModel::Post newPost_;
     WorkStep workStep_;
     std::vector<std::string> paramStrings_;
@@ -43,9 +43,9 @@ namespace Routes::LivePosts
 
     static constexpr const char *createPostSql =
         "INSERT INTO \"Posts\" "
-        "(\"title\", \"content\", \"userId\", \"date\", \"live\") VALUES ($1, $2, $3, NOW(), $4) "
+        "(\"title\", \"content\", \"userId\", \"date\", \"status\") VALUES ($1, $2, $3, NOW(), $4) "
         "RETURNING id, \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
-        "\"allocated\", \"live\", "
+        "\"allocated\", \"status\", "
         "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
         ";";
   };

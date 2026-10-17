@@ -32,7 +32,7 @@ namespace Routes::LivePosts
   {
     try
     {
-      post_ = json::parse(ctx_.req.body());
+      postCreate_ = json::parse(ctx_.req.body());
     }
     catch (...)
     {
@@ -40,18 +40,18 @@ namespace Routes::LivePosts
       return false;
     }
 
-    if (!LivePostsModel::Validate::Posts(post_))
+    if (!LivePostsModel::Validate::PostCreate(postCreate_))
     {
-      sendError("Invalid Game data");
+      sendError("Invalid Post Create data");
       return false;
     }
 
     // Build paramStrings_ (owned)
     paramStrings_.clear();
-    paramStrings_.push_back(post_.title);
-    paramStrings_.push_back(post_.content);
-    paramStrings_.push_back(std::to_string(post_.userId));
-    paramStrings_.push_back(std::to_string(false));
+    paramStrings_.push_back(postCreate_.title);
+    paramStrings_.push_back(postCreate_.content);
+    paramStrings_.push_back(std::to_string(postCreate_.authorUserId));
+    paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::Draft));
 
     // Build paramValues_
     paramValues_.clear();
@@ -173,12 +173,14 @@ namespace Routes::LivePosts
       LivePostsEvents::PostCreateEvent event;
       event.id = newPost_.id;
       event.title = newPost_.title;
+      event.wsId = postCreate_.wsId;
       json jsonEvent = event;
 
       ctx_.redis->produce(
           std::string(LivePostsEvents::SubjectNames.at(event.subject)),
           {std::pair<std::string, std::string>{"postId", std::to_string(newPost_.id)},
-           std::pair<std::string, std::string>{"title", newPost_.title}});
+           std::pair<std::string, std::string>{"title", newPost_.title},
+           std::pair<std::string, std::string>{"wsId", postCreate_.wsId}});
 
       sendSuccess(resultBody_);
       state_ = State::Done;

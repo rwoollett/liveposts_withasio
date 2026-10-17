@@ -43,11 +43,11 @@ namespace Routes::LivePosts
 
     static constexpr const char *sql =
         "UPDATE \"Posts\" "
-        "SET \"live\"=$1, "
+        "SET \"status\"=$1, "
         "\"slug\"=$2 "
         "WHERE \"id\"=$3 "
         "RETURNING id, \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
-        "\"allocated\", \"live\", "
+        "\"allocated\", \"status\", "
         "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
         ";";
   };
