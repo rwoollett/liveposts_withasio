@@ -290,6 +290,7 @@ int main(int argc, char *argv[])
 
     // Public url to fetch posts for the web
     restserver->get("/api/v1/liveposts/posts", "", Rest::DbRequirement::Required, Routes::LivePosts::fetchPosts);
+    restserver->get("/api/v1/liveposts/fetch/post/{postId}", "", Rest::DbRequirement::Required, Routes::LivePosts::fetchPosts);
     // User auth req. Create user at liveposts service for the actual logged in user.
     restserver->put("/api/v1/liveposts/posts", "*", Rest::DbRequirement::Required, Routes::LivePosts::createPost);
     //restserver->put("/api/v1/liveposts/update/post", "*", Rest::DbRequirement::Required, Routes::LivePosts::createPost);
