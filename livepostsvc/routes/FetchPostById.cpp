@@ -115,7 +115,7 @@ namespace Routes::LivePosts
       for (int row = 0; row < rows; row++)
       {
         LivePostsModel::Post post = LivePostsModel::PG::Posts::fromPGRes(res, cols, row);
-        root["fetchPosts"].push_back(post);
+        root["fetchPostById"].push_back(post);
       }
       PQclear(res);
       sendSuccess(root.dump());
