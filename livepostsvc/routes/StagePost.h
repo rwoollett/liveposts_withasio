@@ -30,6 +30,7 @@ namespace Routes::LivePosts
     void sendSuccess(const std::string &body);
 
   private:
+    Rest::Parameters params_;
     LivePostsModel::PostStage stagePostInput_;
     LivePostsModel::Post updatedPostStage_;
 

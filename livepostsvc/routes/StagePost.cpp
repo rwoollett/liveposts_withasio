@@ -32,6 +32,14 @@ namespace Routes::LivePosts
 
   bool StagePostOp::parseReq()
   {
+    params_ = ctx_.session->getReqUrlParameters();
+
+    if (params_["postId"].empty())
+    {
+      sendError("Invalid stage post");
+      return false;
+    }
+
     try
     {
       stagePostInput_ = json::parse(ctx_.req.body());
@@ -48,14 +56,14 @@ namespace Routes::LivePosts
       return false;
     }
 
-    std::string slug = slugger::make_slug(stagePostInput_.title, std::to_string(stagePostInput_.postId), 30);
+    std::string slug = slugger::make_slug(stagePostInput_.title, params_["postId"], 30);
     std::cout << slug << "\n";
 
     // Build paramStrings_ (owned)
     paramStrings_.clear();
     paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::Live));
     paramStrings_.push_back(slug);
-    paramStrings_.push_back(std::to_string(stagePostInput_.postId));
+    paramStrings_.push_back(params_["postId"]);
 
     // Build paramValues_
     paramValues_.clear();
@@ -128,9 +136,13 @@ namespace Routes::LivePosts
       updatedPostStage_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
       PQclear(res);
 
+      root["stagePost"] = updatedPostStage_;
+      // Set status to Live:
+      // 1) do prerender and send broadcast stagepostevent
+      // 2) and postpublishevent for caller wsid
+
       json jsonPost = updatedPostStage_;
       Prerender::prerenderPost(jsonPost.dump());
-      root["stagePost"] = updatedPostStage_;
 
       LivePostsEvents::PostStageEvent eventStage;
       eventStage.id = updatedPostStage_.id;
@@ -141,16 +153,17 @@ namespace Routes::LivePosts
           std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
           jsonEvent.dump());
 
-      // LivePostsEvents::PostPublishedEvent eventPublish;
-      // eventPublish.postId = updatedPostStage_.id;
-      // eventPublish.postId = updatedPostStage_.id;
-      // eventPublish.slug = updatedPostStage_.slug;
-      // eventPublish.wsId = updatedPostStage_.id;
+      // and send PublishEvent
+      LivePostsEvents::PostPublishedEvent eventPublish;
+      eventPublish.postId = updatedPostStage_.id;
+      eventPublish.authorUserId = updatedPostStage_.userId;
+      eventPublish.slug = updatedPostStage_.slug;
+      eventPublish.wsId = stagePostInput_.wsId;
 
-      // json jsonEvent = eventPublish;
-      // ctx_.redis->publish(
-      //     std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
-      //     jsonEvent.dump());
+      json jsonPublishEvent = eventPublish;
+      ctx_.redis->publish(
+          std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
+          jsonPublishEvent.dump());
 
       sendSuccess(root.dump());
     }
