@@ -51,7 +51,7 @@ namespace Routes::LivePosts
     paramStrings_.push_back(postCreate_.title);
     paramStrings_.push_back(postCreate_.content);
     paramStrings_.push_back(std::to_string(postCreate_.authorUserId));
-    paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::Draft));
+    paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::PendingModeration));
 
     // Build paramValues_
     paramValues_.clear();
