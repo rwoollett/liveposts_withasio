@@ -3,12 +3,9 @@
 #include "apiserver/Session.h"
 #include "apiserver/PQClient.h"
 #include "apiserver/Response.h"
-#include <redis_pubsub/publish/Publish.h>
 #include <nlohmann/json.hpp>
 #include <mtlog/mt_log.hpp>
 #include "livepostsmodel/pq.h"
-#include "slugger.h"
-#include "../prerender/Prerender.h"
 
 using json = nlohmann::json;
 using Rest::RouteHandler;
@@ -36,23 +33,7 @@ namespace Routes::LivePosts
 
     if (params_["postId"].empty())
     {
-      sendError("Invalid stage post");
-      return false;
-    }
-
-    try
-    {
-      rejectPostInput_ = json::parse(ctx_.req.body());
-    }
-    catch (...)
-    {
-      sendError("Invalid JSON");
-      return false;
-    }
-
-    if (!LivePostsModel::Validate::PostReject(rejectPostInput_))
-    {
-      sendError("Invalid Game data");
+      sendError("Invalid reject post");
       return false;
     }
 
