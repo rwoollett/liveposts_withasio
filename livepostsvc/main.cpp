@@ -298,6 +298,7 @@ int main(int argc, char *argv[])
 
     // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user
     //  restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost); IF using stream we can use the msg fields
+    restserver->get("/api/v1/liveposts/fetch/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::fetchPostById);
     restserver->put("/api/v1/liveposts/stage/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::stagePost);
     restserver->put("/api/v1/liveposts/reject/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::rejectPost);
 
