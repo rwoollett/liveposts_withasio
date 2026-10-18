@@ -290,14 +290,13 @@ int main(int argc, char *argv[])
 
     // Public url to fetch posts for the web
     restserver->get("/api/v1/liveposts/posts", "", Rest::DbRequirement::Required, Routes::LivePosts::fetchPosts);
-    restserver->get("/api/v1/liveposts/fetch/post/{postId}", "", Rest::DbRequirement::Required, Routes::LivePosts::fetchPosts);
+
     // User auth req. Create user at liveposts service for the actual logged in user.
     restserver->put("/api/v1/liveposts/posts", "*", Rest::DbRequirement::Required, Routes::LivePosts::createPost);
     //restserver->put("/api/v1/liveposts/update/post", "*", Rest::DbRequirement::Required, Routes::LivePosts::createPost);
     restserver->put("/api/v1/liveposts/moderate", "*", Rest::DbRequirement::None, Routes::LivePosts::moderate);
 
     // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user
-    //  restserver->get("/api/v1/liveposts/stage/post", "netproc", Routes::LivePosts::allocatePost); IF using stream we can use the msg fields
     restserver->get("/api/v1/liveposts/fetch/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::fetchPostById);
     restserver->put("/api/v1/liveposts/stage/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::stagePost);
     restserver->put("/api/v1/liveposts/reject/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::rejectPost);
