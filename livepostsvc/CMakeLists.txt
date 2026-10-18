@@ -9,6 +9,8 @@ add_executable(LivePostSvc
   routes/FetchPost.cpp
   routes/FetchAuthor.h
   routes/FetchAuthor.cpp
+  routes/RejectPost.h
+  routes/RejectPost.cpp
   routes/Routes.h
   routes/StagePost.h
   routes/StagePost.cpp

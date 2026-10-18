@@ -7,6 +7,7 @@
 #include "FetchPost.h"
 #include "RouteCommon.h"
 #include "StagePost.h"
+#include "RejectPost.h"
 #include <boost/asio/dispatch.hpp>
 
 using Rest::RequestContext;
@@ -44,6 +45,12 @@ namespace Routes
     inline void stagePost(RequestContext ctx)
     {
       auto op = std::make_shared<StagePostOp>(std::move(ctx));
+      op->start();
+    }
+
+    inline void rejectPost(RequestContext ctx)
+    {
+      auto op = std::make_shared<RejectPostOp>(std::move(ctx));
       op->start();
     }
 
