@@ -41,7 +41,7 @@ namespace Routes::LivePosts
     std::vector<int> paramFormats_;
 
     static constexpr const char *sql = "SELECT "
-                                       "\"Posts\".\"id\", \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+                                       "\"Posts\".\"id\", \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
                                        "\"allocated\", \"status\", "
                                        "\"Users\".\"name\" AS \"userName\" "
                                        "FROM \"Posts\" LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\" "

@@ -44,7 +44,7 @@ namespace Routes::LivePosts
     static constexpr const char *createPostSql =
         "INSERT INTO \"Posts\" "
         "(\"title\", \"content\", \"userId\", \"date\", \"status\") VALUES ($1, $2, $3, NOW(), $4) "
-        "RETURNING id, \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+        "RETURNING id, \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
         "\"allocated\", \"status\", "
         "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
         ";";
