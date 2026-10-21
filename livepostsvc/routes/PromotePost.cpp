@@ -36,7 +36,7 @@ namespace Routes::LivePosts
 
     if (params_["postId"].empty())
     {
-      sendError("Invalid stage post");
+      sendError("Invalid promote post");
       return false;
     }
 
@@ -126,7 +126,7 @@ namespace Routes::LivePosts
       json root;
       if (rows == 0)
       {
-        root["stagePost"] = "No rows returned from query";
+        root["promotePost"] = "No rows returned from query";
         PQclear(res);
         sendSuccess(root.dump());
         return;
