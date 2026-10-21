@@ -43,7 +43,7 @@ namespace Routes::LivePosts
         "UPDATE \"Posts\" "
         "SET \"draftTitle\"=$1, " 
         " \"draftContent\"=$2, "
-        " \"status\"=$3, "
+        " \"status\"=$3 "
         "WHERE \"id\"=$4 "
         "RETURNING id, \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
         "\"allocated\", \"status\", "
