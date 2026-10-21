@@ -1,0 +1,214 @@
+#include "PromotePost.h"
+
+#include "apiserver/Session.h"
+#include "apiserver/PQClient.h"
+#include "apiserver/Response.h"
+#include <redis_pubsub/publish/Publish.h>
+#include <nlohmann/json.hpp>
+#include <mtlog/mt_log.hpp>
+#include "livepostsmodel/pq.h"
+#include "slugger.h"
+#include "../prerender/Prerender.h"
+
+using json = nlohmann::json;
+using Rest::RouteHandler;
+using Timestamp::parseDate;
+
+namespace Routes::LivePosts
+{
+
+  PromotePostOp::PromotePostOp(RequestContext ctx)
+      : ctx_(std::move(ctx)), send_(std::move(ctx_.send))
+  {
+  }
+
+  void PromotePostOp::start()
+  {
+    if (!parseReq())
+      return; // parseReq already sent error
+
+    doWork();
+  }
+
+  bool PromotePostOp::parseReq()
+  {
+    params_ = ctx_.session->getReqUrlParameters();
+
+    if (params_["postId"].empty())
+    {
+      sendError("Invalid stage post");
+      return false;
+    }
+
+    try
+    {
+      promotePostInput_ = json::parse(ctx_.req.body());
+    }
+    catch (...)
+    {
+      sendError("Invalid JSON");
+      return false;
+    }
+
+    if (!LivePostsModel::Validate::PostStage(promotePostInput_))
+    {
+      sendError("Invalid Promote post data");
+      return false;
+    }
+
+    std::string slug = slugger::make_slug(promotePostInput_.title, params_["postId"], 30);
+    std::cout << slug << "\n";
+
+    // Build paramStrings_ (owned)
+    paramStrings_.clear();
+    paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::Live));
+    paramStrings_.push_back(slug);
+    paramStrings_.push_back(params_["postId"]);
+
+    // Build paramValues_
+    paramValues_.clear();
+    for (auto &s : paramStrings_)
+      paramValues_.push_back(s.c_str());
+
+    // lengths + formats
+    paramLengths_.assign(paramStrings_.size(), 0);
+    paramFormats_.assign(paramStrings_.size(), 0);
+
+    return true;
+  }
+
+  void PromotePostOp::doWork()
+  {
+    auto self = shared_from_this();
+    ctx_.db->asyncExecParams(
+        sql,
+        paramValues_,
+        paramLengths_,
+        paramFormats_,
+        static_cast<int>(paramValues_.size()),
+        [self](PGresult *res)
+        { self->onWorkResult(res); });
+  }
+
+  void PromotePostOp::onWorkResult(PGresult *res)
+  {
+    if (!res)
+    {
+      sendError("Promote post failed: " + ctx_.db->connErrorMessage());
+      return;
+    }
+
+    auto status = PQresultStatus(res);
+
+    // Fatal error
+    if (status == PGRES_FATAL_ERROR)
+    {
+      std::string err = PQresultErrorMessage(res);
+      PQclear(res);
+      sendError("Promote post failed: " + err);
+      return;
+    }
+
+    // Only PGRES_TUPLES_OK is the real INSERT ... RETURNING row
+    if (status != PGRES_TUPLES_OK)
+    {
+      std::string err = PQresultErrorMessage(res);
+      PQclear(res);
+      sendError("Promote post failed: " + err);
+      return;
+    }
+
+    // --- Success path: parse the returned rows ---
+    try
+    {
+      int rows = PQntuples(res);
+      int cols = PQnfields(res);
+      json root;
+      if (rows == 0)
+      {
+        root["stagePost"] = "No rows returned from query";
+        PQclear(res);
+        sendSuccess(root.dump());
+        return;
+      }
+
+      // Only one row is returned
+      updatedPostStage_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
+      PQclear(res);
+
+      root["promotePost"] = updatedPostStage_;
+      // Set status to Live:
+      // 1) do prerender and send broadcast stagepostevent
+      // 2) and postpublishevent for caller wsid
+
+      json jsonPost = updatedPostStage_;
+      Prerender::prerenderPost(jsonPost.dump());
+
+      LivePostsEvents::PostStageEvent eventStage;
+      eventStage.id = updatedPostStage_.id;
+      eventStage.slug = updatedPostStage_.slug;
+
+      json jsonEvent = eventStage;
+      ctx_.redis->publish(
+          std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
+          jsonEvent.dump());
+
+      // and send PublishEvent
+      LivePostsEvents::PostPublishedEvent eventPublish;
+      eventPublish.postId = updatedPostStage_.id;
+      eventPublish.authorUserId = updatedPostStage_.userId;
+      eventPublish.slug = updatedPostStage_.slug;
+      eventPublish.wsId = promotePostInput_.wsId;
+
+      json jsonPublishEvent = eventPublish;
+      ctx_.redis->publish(
+          std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
+          jsonPublishEvent.dump());
+
+      sendSuccess(root.dump());
+    }
+    catch (const std::string &e)
+    {
+      PQclear(res);
+      sendError(e);
+    }
+    catch (const std::exception &e)
+    {
+      PQclear(res);
+      sendError(e.what());
+    }
+  }
+
+  // --- Local helpers (no DbOpBase) ---
+  void PromotePostOp::sendError(const std::string &msg)
+  {
+    auto session = ctx_.session;
+    auto &strand = session->strand();
+    auto req = ctx_.req;
+    net::dispatch(
+        strand,
+        [self = shared_from_this(),
+         send = std::move(send_),
+         req = std::move(req),
+         body = std::move(msg)]() mutable
+        {
+          send(bad_request(req, body));
+        });
+  }
+
+  void PromotePostOp::sendSuccess(const std::string &body)
+  {
+    auto session = ctx_.session;
+    auto &strand = session->strand();
+    auto req = ctx_.req;
+    net::dispatch(
+        strand,
+        [self = shared_from_this(),
+         send = std::move(send_),
+         req = std::move(req),
+         body = std::move(body)]() mutable
+        {
+          send(success_request(req, body));
+        });
+  }
+}

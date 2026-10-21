@@ -6,6 +6,7 @@
 #include "FetchAuthor.h"
 #include "FetchPost.h"
 #include "FetchPostById.h"
+#include "PromotePost.h"
 #include "RouteCommon.h"
 #include "StagePost.h"
 #include "RejectPost.h"
@@ -59,6 +60,12 @@ namespace Routes
     inline void stagePost(RequestContext ctx)
     {
       auto op = std::make_shared<StagePostOp>(std::move(ctx));
+      op->start();
+    }
+
+    inline void promotePost(RequestContext ctx)
+    {
+      auto op = std::make_shared<PromotePostOp>(std::move(ctx));
       op->start();
     }
 

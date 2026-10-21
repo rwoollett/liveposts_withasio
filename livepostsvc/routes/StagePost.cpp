@@ -52,7 +52,7 @@ namespace Routes::LivePosts
 
     if (!LivePostsModel::Validate::PostStage(stagePostInput_))
     {
-      sendError("Invalid Game data");
+      sendError("Invalid stage post data");
       return false;
     }
 

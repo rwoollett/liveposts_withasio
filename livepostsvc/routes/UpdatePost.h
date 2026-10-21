@@ -45,7 +45,7 @@ namespace Routes::LivePosts
         " \"draftContent\"=$2, "
         " \"status\"=$3 "
         "WHERE \"id\"=$4 "
-        "RETURNING id, \"title\", \"slug\", \"content\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+        "RETURNING id, \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
         "\"allocated\", \"status\", "
         "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
         ";";
