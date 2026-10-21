@@ -30,7 +30,7 @@ namespace Routes::LivePosts
     void onCommit(PGresult *res) override;
 
   private:
-    LivePostsModel::PostCreate postCreate_; // TODO needs a PostCreate structure so to send websocket user, which is not to do with Post
+    LivePostsModel::PostCreate postCreate_; 
     LivePostsModel::Post newPost_;
     WorkStep workStep_;
     std::vector<std::string> paramStrings_;

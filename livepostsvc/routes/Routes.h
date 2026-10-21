@@ -9,6 +9,7 @@
 #include "RouteCommon.h"
 #include "StagePost.h"
 #include "RejectPost.h"
+#include "UpdatePost.h"
 #include <boost/asio/dispatch.hpp>
 
 using Rest::RequestContext;
@@ -34,6 +35,12 @@ namespace Routes
     inline void createPost(RequestContext ctx)
     {
       auto op = std::make_shared<CreatePostOp>(std::move(ctx));
+      op->start();
+    }
+
+    inline void updatePost(RequestContext ctx)
+    {
+      auto op = std::make_shared<UpdatePostOp>(std::move(ctx));
       op->start();
     }
 

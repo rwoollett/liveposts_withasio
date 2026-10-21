@@ -115,6 +115,7 @@ namespace Routes::LivePosts
     {
       PQclear(res);
       sendError(e.what());
+      return;
     }
   }
 

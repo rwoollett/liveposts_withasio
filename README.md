@@ -188,3 +188,19 @@ This is the structure of the files in the project:
     └── README.md
 ```
 *__<sup>NB</sup>__* Dockerfile.dev only for Reflex building. File reflex_linux_amd64.tar.gz is required.
+
+
+# Debuging in gdb
+
+## gdb core trace 
+
+```sh
+ulimit -c unlimited
+ulimit -a | grep core
+./build/debug/livepostsvc/LivePostSvc
+```
+
+Now while service is running use a route call to test the service.
+
+If unhandled exception it creates core which you can investigate with gdb.
+

@@ -172,14 +172,12 @@ namespace Routes::LivePosts
     {
       LivePostsEvents::PostCreateEvent event;
       event.id = newPost_.id;
-      event.title = newPost_.title;
       event.wsId = postCreate_.wsId;
       json jsonEvent = event;
 
       ctx_.redis->produce(
           std::string(LivePostsEvents::SubjectNames.at(event.subject)),
           {std::pair<std::string, std::string>{"postId", std::to_string(newPost_.id)},
-           std::pair<std::string, std::string>{"title", newPost_.title},
            std::pair<std::string, std::string>{"wsId", postCreate_.wsId}});
 
       sendSuccess(resultBody_);
