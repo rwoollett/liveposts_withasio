@@ -30,17 +30,34 @@ namespace Routes::LivePosts
 
   bool FetchAuthorOp::parseReq()
   {
-    params_ = ctx_.session->getReqUrlParameters();
-
-    if (params_["authId"].empty() /*|| params_["user"].empty()*/)
+    try
     {
-      sendError("Invalid fetch author data");
+      json jsonIn = json::parse(ctx_.req.body());
+      if (jsonIn.contains("wsId"))
+      {
+        jsonIn.at("wsId").get_to(wsId_);
+      }
+      else
+      {
+        sendError("JSON input needs wsId");
+        return false;
+      }
+    }
+    catch (...)
+    {
+      sendError("Invalid JSON");
       return false;
     }
-    std::cerr << "params_ [" << params_["authId"] << "] " << std::endl;//[" << params_["user"] << "]" << std::endl;
+
+    mt_logging::logger().log(
+        {fmt::format(
+             " FetchAuthorOp::parseReq: user email {}  user auth id {}  wsId {}",
+             ctx_.userEmail, ctx_.authUserId, wsId_),
+         mt_logging::LogLevel::Debug,
+         true});
 
     paramStrings_.clear();
-    paramStrings_.push_back(params_["authId"]);
+    paramStrings_.push_back(ctx_.userEmail);
 
     // Build paramValues_
     paramValues_.clear();
@@ -104,17 +121,28 @@ namespace Routes::LivePosts
 
       if (rows == 0)
       {
-        root["fetchUserByAuthId"] = json::array();
         PQclear(res);
+        root["fetchAuthor"] = json::array();
+
+        LivePostsEvents::UserCreateEvent event;
+        event.authUserEmail = ctx_.userEmail;
+        event.wsId = wsId_;
+        json jsonEvent = event;
+
+        ctx_.redis->produce(
+            std::string(LivePostsEvents::SubjectNames.at(event.subject)),
+            {std::pair<std::string, std::string>{"authUserEmail", ctx_.userEmail},
+             std::pair<std::string, std::string>{"wsId", wsId_}});
+
         sendSuccess(root.dump());
         return;
       }
 
-      root["fetchUserByAuthId"] = json::array();
+      root["fetchAuthor"] = json::array();
       for (int row = 0; row < rows; row++)
       {
         LivePostsModel::User user = LivePostsModel::PG::Users::fromPGRes(res, cols, row);
-        root["fetchUserByAuthId"].push_back(user);
+        root["fetchAuthor"].push_back(user);
       }
       PQclear(res);
       sendSuccess(root.dump());

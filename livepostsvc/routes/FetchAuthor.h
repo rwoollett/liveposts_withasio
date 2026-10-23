@@ -30,7 +30,7 @@ namespace Routes::LivePosts
     void sendSuccess(const std::string &body);
 
   private:
-    Rest::Parameters params_;
+    std::string wsId_;
     LivePostsModel::User user_;
 
     RequestContext ctx_;
@@ -42,9 +42,9 @@ namespace Routes::LivePosts
     std::vector<int> paramFormats_;
 
     static constexpr const char *sql = "SELECT "
-                                         "id, \"authId\", \"name\" "
-                                         "FROM \"Users\" "
-                                         "WHERE \"authId\" = $1 "
-                                         ";";
+                                       "id, \"authUserEmail\", \"name\" "
+                                       "FROM \"Users\" "
+                                       "WHERE \"authUserEmail\" = $1 "
+                                       ";";
   };
 }
