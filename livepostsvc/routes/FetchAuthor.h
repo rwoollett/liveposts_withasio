@@ -44,7 +44,7 @@ namespace Routes::LivePosts
     static constexpr const char *sql = "SELECT "
                                        "id, \"authUserEmail\", \"name\" "
                                        "FROM \"Users\" "
-                                       "WHERE \"authUserEmail\" = $1 "
+                                       "WHERE \"authUserId\" = $1 "
                                        ";";
   };
 }

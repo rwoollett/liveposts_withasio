@@ -57,13 +57,13 @@ namespace Routes::LivePosts
     mt_logging::logger().log(
         {fmt::format(
              " UpdatePostOp::parseReq: user email {}  user auth id {}",
-             ctx_.userEmail, ctx_.authUserId),
+             ctx_.authUserEmail, ctx_.authUserId),
          mt_logging::LogLevel::Debug,
          true});
 
     // Build auth check paramStrings_ (owned)
     paramStringsAuthCheck_.clear();
-    paramStringsAuthCheck_.push_back(ctx_.userEmail);
+    paramStringsAuthCheck_.push_back(ctx_.authUserId);
     paramStringsAuthCheck_.push_back(params_["postId"]);
 
     paramValuesAuthCheck_.clear();
@@ -207,7 +207,7 @@ namespace Routes::LivePosts
         mt_logging::logger().log(
             {fmt::format(
                  " UpdatePostOp::onAuthCheck: Not successfully authorized to update post id {}. user email {}  user auth id {}",
-                 params_["postId"], ctx_.userEmail, ctx_.authUserId),
+                 params_["postId"], ctx_.authUserEmail, ctx_.authUserId),
              mt_logging::LogLevel::Info,
              true});
 

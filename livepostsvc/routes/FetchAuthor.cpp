@@ -51,13 +51,13 @@ namespace Routes::LivePosts
 
     mt_logging::logger().log(
         {fmt::format(
-             " FetchAuthorOp::parseReq: user email {}  user auth id {}  wsId {}",
-             ctx_.userEmail, ctx_.authUserId, wsId_),
+             " FetchAuthorOp::parseReq: user auth email {}  user auth id {}  wsId {}",
+             ctx_.authUserEmail, ctx_.authUserId, wsId_),
          mt_logging::LogLevel::Debug,
          true});
 
     paramStrings_.clear();
-    paramStrings_.push_back(ctx_.userEmail);
+    paramStrings_.push_back(ctx_.authUserId);
 
     // Build paramValues_
     paramValues_.clear();
@@ -136,25 +136,26 @@ namespace Routes::LivePosts
         root["fetchAuthor"] = json::array();
 
         LivePostsEvents::UserCreateEvent event;
-        event.authUserEmail = ctx_.userEmail;
+        event.authUserEmail = ctx_.authUserEmail;
         event.wsId = wsId_;
         json jsonEvent = event;
         mt_logging::logger().log(
             {fmt::format(
                  "FetchAuthorOp::onWorkResult usercreateevent made {}",
-                 ctx_.userEmail),
+                 ctx_.authUserEmail),
              mt_logging::LogLevel::Info,
              true});
 
         ctx_.redis->produce(
             std::string(LivePostsEvents::SubjectNames.at(event.subject)),
-            {std::pair<std::string, std::string>{"authUserEmail", ctx_.userEmail},
+            {std::pair<std::string, std::string>{"authUserEmail", ctx_.authUserEmail},
+             std::pair<std::string, std::string>{"authUserId", ctx_.authUserId},
              std::pair<std::string, std::string>{"wsId", wsId_}});
 
         mt_logging::logger().log(
             {fmt::format(
                  "FetchAuthorOp::onWorkResult sendsuccess {}",
-                 ctx_.userEmail),
+                 ctx_.authUserId),
              mt_logging::LogLevel::Info,
              true});
 

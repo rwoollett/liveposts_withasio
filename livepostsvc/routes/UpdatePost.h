@@ -69,7 +69,7 @@ namespace Routes::LivePosts
 
     static constexpr const char *selectAuthSql = "SELECT \"id\" FROM \"Posts\" "
                                          "LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\" "
-                                         "WHERE \"Users\".\"authUserEmail\" = $1 "
+                                         "WHERE \"Users\".\"authUserId\" = $1 "
                                          "AND   \"Posts\".\"id\" = $2 "
                                          ";";
 
