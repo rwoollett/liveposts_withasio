@@ -207,7 +207,7 @@ namespace Routes::LivePosts
         mt_logging::logger().log(
             {fmt::format(
                  " UpdatePostOp::onAuthCheck: Not successfully authorized to update post id {}. user email {}  user auth id {}",
-                 updatedPost_.id, ctx_.userEmail, ctx_.authUserId),
+                 params_["postId"], ctx_.userEmail, ctx_.authUserId),
              mt_logging::LogLevel::Info,
              true});
 
