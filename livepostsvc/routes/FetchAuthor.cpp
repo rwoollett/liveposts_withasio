@@ -116,9 +116,7 @@ namespace Routes::LivePosts
     try
     {
       json root;
-      int cols = PQnfields(res);
       int rows = PQntuples(res);
-
       if (rows == 0)
       {
         PQclear(res);
@@ -139,6 +137,7 @@ namespace Routes::LivePosts
       }
 
       root["fetchAuthor"] = json::array();
+      int cols = PQnfields(res);
       for (int row = 0; row < rows; row++)
       {
         LivePostsModel::User user = LivePostsModel::PG::Users::fromPGRes(res, cols, row);
