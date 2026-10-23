@@ -93,6 +93,14 @@ namespace Routes::LivePosts
     }
 
     auto status = PQresultStatus(res);
+    mt_logging::logger().log(
+        {fmt::format(
+             "FetchAuthorOp::onWorkResult status={} ({}) error: {}",
+             static_cast<int>(status),
+             PQresStatus(status),
+             PQresultErrorMessage(res)),
+         mt_logging::LogLevel::Info,
+         true});
 
     // Fatal error
     if (status == PGRES_FATAL_ERROR)
@@ -117,21 +125,40 @@ namespace Routes::LivePosts
     {
       json root;
       int rows = PQntuples(res);
+      mt_logging::logger().log(
+          {fmt::format(
+               "FetchAuthorOp::onWorkResult rows={}",
+               rows),
+           mt_logging::LogLevel::Info,
+           true});
       if (rows == 0)
       {
-        PQclear(res);
         root["fetchAuthor"] = json::array();
 
         LivePostsEvents::UserCreateEvent event;
         event.authUserEmail = ctx_.userEmail;
         event.wsId = wsId_;
         json jsonEvent = event;
+        mt_logging::logger().log(
+            {fmt::format(
+                 "FetchAuthorOp::onWorkResult usercreateevent made {}",
+                 ctx_.userEmail),
+             mt_logging::LogLevel::Info,
+             true});
 
         ctx_.redis->produce(
             std::string(LivePostsEvents::SubjectNames.at(event.subject)),
             {std::pair<std::string, std::string>{"authUserEmail", ctx_.userEmail},
              std::pair<std::string, std::string>{"wsId", wsId_}});
 
+        mt_logging::logger().log(
+            {fmt::format(
+                 "FetchAuthorOp::onWorkResult sendsuccess {}",
+                 ctx_.userEmail),
+             mt_logging::LogLevel::Info,
+             true});
+
+        PQclear(res);
         sendSuccess(root.dump());
         return;
       }
