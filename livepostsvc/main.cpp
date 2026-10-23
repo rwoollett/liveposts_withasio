@@ -291,10 +291,11 @@ int main(int argc, char *argv[])
     // Public url to fetch posts for the web
     restserver->get("/api/v1/liveposts/posts", "", Rest::DbRequirement::Required, Routes::LivePosts::fetchPosts);
 
-    // User auth req. Create user at liveposts service for the actual logged in user.
-    //                UpdatePost uses postId in url
+    // TODO: !! use ctx authUserId to find the postuser id for author to add to post. 
     restserver->put("/api/v1/liveposts/posts", "*", Rest::DbRequirement::Required, Routes::LivePosts::createPost);
+    // UpdatePost has ctx authUserId to check owner of post with the postuser id
     restserver->put("/api/v1/liveposts/update/post/{postId}", "*", Rest::DbRequirement::Required, Routes::LivePosts::updatePost);
+
     restserver->put("/api/v1/liveposts/moderate", "*", Rest::DbRequirement::None, Routes::LivePosts::moderate);
 
     // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user
