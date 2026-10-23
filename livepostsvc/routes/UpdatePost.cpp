@@ -24,7 +24,7 @@ namespace Routes::LivePosts
 {
   UpdatePostOp::UpdatePostOp(RequestContext ctx)
       : DbOpBase(std::move(ctx)),
-        workStep_(UpdatePostWorkStep::Done)
+        workStep_(UpdatePostWorkStep::AuthCheck)
   {
   }
 
@@ -54,7 +54,26 @@ namespace Routes::LivePosts
       return false;
     }
 
-    // Build paramStrings_ (owned)
+    mt_logging::logger().log(
+        {fmt::format(
+             " UpdatePostOp::parseReq: user email {}  user auth id {}",
+             ctx_.userEmail, ctx_.authUserId),
+         mt_logging::LogLevel::Debug,
+         true});
+
+    // Build auth check paramStrings_ (owned)
+    paramStringsAuthCheck_.clear();
+    paramStringsAuthCheck_.push_back(ctx_.userEmail);
+    paramStringsAuthCheck_.push_back(params_["postId"]);
+
+    paramValuesAuthCheck_.clear();
+    for (auto &s : paramStringsAuthCheck_)
+      paramValuesAuthCheck_.push_back(s.c_str());
+
+    paramLengthsAuthCheck_.assign(paramStringsAuthCheck_.size(), 0);
+    paramFormatsAuthCheck_.assign(paramStringsAuthCheck_.size(), 0);
+
+    // Build update post paramStrings_ (owned)
     paramStrings_.clear();
     paramStrings_.push_back(postUpdate_.title);
     paramStrings_.push_back(postUpdate_.content);
@@ -76,14 +95,34 @@ namespace Routes::LivePosts
   void UpdatePostOp::doWork()
   {
     auto self = shared_from_this();
-    ctx_.db->asyncExecParams(
-        sql,
-        paramValues_,
-        paramLengths_,
-        paramFormats_,
-        static_cast<int>(paramValues_.size()),
-        [self](PGresult *res)
-        { self->handleWork(res); });
+
+    switch (workStep_)
+    {
+    case UpdatePostWorkStep::AuthCheck:
+      ctx_.db->asyncExecParams(
+          selectAuthSql,
+          paramValuesAuthCheck_,
+          paramLengthsAuthCheck_,
+          paramFormatsAuthCheck_,
+          static_cast<int>(paramValuesAuthCheck_.size()),
+          [self](PGresult *res)
+          { self->handleWork(res); });
+      break;
+
+    case UpdatePostWorkStep::Update:
+      ctx_.db->asyncExecParams(
+          updatePostSql,
+          paramValues_,
+          paramLengths_,
+          paramFormats_,
+          static_cast<int>(paramValues_.size()),
+          [self](PGresult *res)
+          { self->handleWork(res); });
+      break;
+    case UpdatePostWorkStep::Done:
+      // Should never be called
+      break;
+    }
   }
 
   void UpdatePostOp::handleWork(PGresult *res)
@@ -93,6 +132,10 @@ namespace Routes::LivePosts
       state_ = State::Rollback;
       return advance();
     }
+
+    // Find next work from previous state of UpdatePostWorkStep
+    workAdvance();
+
     if (workStep_ != UpdatePostWorkStep::Done)
     {
       state_ = State::Work;
@@ -139,6 +182,52 @@ namespace Routes::LivePosts
       return false;
     }
 
+    switch (workStep_)
+    {
+    case UpdatePostWorkStep::AuthCheck:
+      return onAuthCheck(res);
+    case UpdatePostWorkStep::Update:
+      return onUpdate(res);
+    case UpdatePostWorkStep::Done:
+      return true;
+    }
+    return false;
+  }
+
+  bool UpdatePostOp::onAuthCheck(PGresult *res)
+  {
+    try
+    {
+      json root;
+      int rows = PQntuples(res);
+
+      if (rows == 0)
+      {
+        PQclear(res);
+        mt_logging::logger().log(
+            {fmt::format(
+                 " UpdatePostOp::onAuthCheck: Not successfully authorized to update post id {}. user email {}  user auth id {}",
+                 updatedPost_.id, ctx_.userEmail, ctx_.authUserId),
+             mt_logging::LogLevel::Info,
+             true});
+
+        sendError("Not successfully authorized to update post");
+        return false;
+      }
+
+      PQclear(res);
+      return true;
+    }
+    catch (const std::exception &e)
+    {
+      PQclear(res);
+      sendError(e.what());
+      return false;
+    }
+  }
+
+  bool UpdatePostOp::onUpdate(PGresult *res)
+  {
     try
     {
       int cols = PQnfields(res);
