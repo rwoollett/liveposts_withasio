@@ -42,7 +42,7 @@ namespace Routes::LivePosts
     std::vector<int> paramFormats_;
 
     static constexpr const char *sql = "SELECT "
-                                       "id, \"authUserEmail\", \"name\" "
+                                       "id, \"authUserId\", \"authUserEmail\", \"name\" "
                                        "FROM \"Users\" "
                                        "WHERE \"authUserId\" = $1 "
                                        ";";
