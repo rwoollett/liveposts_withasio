@@ -67,7 +67,7 @@ namespace Routes::LivePosts
 
     std::string resultBody_;
 
-    static constexpr const char *selectAuthSql = "SELECT \"id\" FROM \"Posts\" "
+    static constexpr const char *selectAuthSql = "SELECT \"Posts\".\"id\" FROM \"Posts\" "
                                          "LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\" "
                                          "WHERE \"Users\".\"authUserId\" = $1 "
                                          "AND   \"Posts\".\"id\" = $2 "
