@@ -10,10 +10,10 @@ using Rest::Session;
 namespace Routes::LivePosts
 {
 
-  enum class WorkStep
+  enum class CreatePostWorkStep
   {
-    InsertGame,
-    InsertPlayers,
+    AuthFind,
+    Create,
     Done
   };
 
@@ -27,19 +27,48 @@ namespace Routes::LivePosts
     void doWork() override;
     bool onWorkResult(PGresult *res) override;
     void handleWork(PGresult *res) override;
+    bool onAuthFind(PGresult *res);
+    bool onCreate(PGresult *res);
     void onCommit(PGresult *res) override;
 
   private:
-    LivePostsModel::PostCreate postCreate_; 
+    void workAdvance()
+    {
+      if (workStep_ == CreatePostWorkStep::Done)
+        return;
+
+      switch (workStep_)
+      {
+      case CreatePostWorkStep::AuthFind:
+        workStep_ = CreatePostWorkStep::Create;
+        break;
+      case CreatePostWorkStep::Create:
+        workStep_ = CreatePostWorkStep::Done;
+      }
+    }
+
+  private:
+    LivePostsModel::PostCreate postCreate_;
+    LivePostsModel::User postUser_;
     LivePostsModel::Post newPost_;
-    WorkStep workStep_;
+    CreatePostWorkStep workStep_;
+
+    std::vector<std::string> paramStringsAuthFind_;
+    std::vector<const char *> paramValuesAuthFind_;
+    std::vector<int> paramLengthsAuthFind_;
+    std::vector<int> paramFormatsAuthFind_;
+
     std::vector<std::string> paramStrings_;
     std::vector<const char *> paramValues_;
     std::vector<int> paramLengths_;
     std::vector<int> paramFormats_;
     std::string resultBody_;
 
-    static constexpr const char *CREATE_BOARD_INIT = "0,0,0,0,0,0,0,0,0";
+    static constexpr const char *selectAuthSql = "SELECT "
+                                                 "id, \"authUserId\", \"authUserEmail\", \"name\" "
+                                                 "FROM \"Users\" "
+                                                 "WHERE \"authUserId\" = $1 "
+                                                 ";";
 
     static constexpr const char *createPostSql =
         "INSERT INTO \"Posts\" "

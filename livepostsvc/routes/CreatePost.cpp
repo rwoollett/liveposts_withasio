@@ -24,7 +24,7 @@ namespace Routes::LivePosts
 {
   CreatePostOp::CreatePostOp(RequestContext ctx)
       : DbOpBase(std::move(ctx)),
-        workStep_(WorkStep::Done)
+        workStep_(CreatePostWorkStep::AuthFind)
   {
   }
 
@@ -46,21 +46,16 @@ namespace Routes::LivePosts
       return false;
     }
 
-    // Build paramStrings_ (owned)
-    paramStrings_.clear();
-    paramStrings_.push_back(postCreate_.title);
-    paramStrings_.push_back(postCreate_.content);
-    paramStrings_.push_back(std::to_string(postCreate_.authorUserId));
-    paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::PendingModeration));
+    // Build auth check paramStrings_ (owned)
+    paramStringsAuthFind_.clear();
+    paramStringsAuthFind_.push_back(ctx_.authUserId);
 
-    // Build paramValues_
-    paramValues_.clear();
-    for (auto &s : paramStrings_)
-      paramValues_.push_back(s.c_str());
+    paramValuesAuthFind_.clear();
+    for (auto &s : paramStringsAuthFind_)
+      paramValuesAuthFind_.push_back(s.c_str());
 
-    // lengths + formats
-    paramLengths_.assign(paramStrings_.size(), 0);
-    paramFormats_.assign(paramStrings_.size(), 0);
+    paramLengthsAuthFind_.assign(paramStringsAuthFind_.size(), 0);
+    paramFormatsAuthFind_.assign(paramStringsAuthFind_.size(), 0);
 
     return true;
   }
@@ -68,14 +63,36 @@ namespace Routes::LivePosts
   void CreatePostOp::doWork()
   {
     auto self = shared_from_this();
-    ctx_.db->asyncExecParams(
-        createPostSql,
-        paramValues_,
-        paramLengths_,
-        paramFormats_,
-        static_cast<int>(paramValues_.size()),
-        [self](PGresult *res)
-        { self->handleWork(res); });
+
+    switch (workStep_)
+    {
+    case CreatePostWorkStep::AuthFind:
+      ctx_.db->asyncExecParams(
+          selectAuthSql,
+          paramValuesAuthFind_,
+          paramLengthsAuthFind_,
+          paramFormatsAuthFind_,
+          static_cast<int>(paramValuesAuthFind_.size()),
+          [self](PGresult *res)
+          { self->handleWork(res); });
+
+      break;
+    case CreatePostWorkStep::Create:
+      ctx_.db->asyncExecParams(
+          createPostSql,
+          paramValues_,
+          paramLengths_,
+          paramFormats_,
+          static_cast<int>(paramValues_.size()),
+          [self](PGresult *res)
+          { self->handleWork(res); });
+
+      break;
+    case CreatePostWorkStep::Done:
+      // Should never be called
+
+      break;
+    }
   }
 
   void CreatePostOp::handleWork(PGresult *res)
@@ -85,7 +102,11 @@ namespace Routes::LivePosts
       state_ = State::Rollback;
       return advance();
     }
-    if (workStep_ != WorkStep::Done)
+
+    // Find next work from previous state of CreatePostWorkStep
+    workAdvance();
+
+    if (workStep_ != CreatePostWorkStep::Done)
     {
       state_ = State::Work;
     }
@@ -131,6 +152,71 @@ namespace Routes::LivePosts
       return false;
     }
 
+    switch (workStep_)
+    {
+    case CreatePostWorkStep::AuthFind:
+      return onAuthFind(res);
+    case CreatePostWorkStep::Create:
+      return onCreate(res);
+    case CreatePostWorkStep::Done:
+      return true;
+    }
+    return false;
+  }
+
+  bool CreatePostOp::onAuthFind(PGresult *res)
+  {
+    try
+    {
+      json root;
+      int rows = PQntuples(res);
+
+      if (rows == 0)
+      {
+        PQclear(res);
+        mt_logging::logger().log(
+            {fmt::format(
+                 " CreatePostOp::onAuthFind: Not successfully authorized to create post. user email {}  user auth id {}",
+                 ctx_.authUserEmail, ctx_.authUserId),
+             mt_logging::LogLevel::Info,
+             true});
+
+        sendError("Not successfully authorized to create post");
+        return false;
+      }
+
+      int cols = PQnfields(res);
+      postUser_ = LivePostsModel::PG::Users::fromPGRes(res, cols, 0);
+
+      // Build create post paramStrings_ (owned)
+      paramStrings_.clear();
+      paramStrings_.push_back(postCreate_.title);
+      paramStrings_.push_back(postCreate_.content);
+      paramStrings_.push_back(std::to_string(postUser_.id));
+      paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::PendingModeration));
+
+      // Build paramValues_
+      paramValues_.clear();
+      for (auto &s : paramStrings_)
+        paramValues_.push_back(s.c_str());
+
+      // lengths + formats
+      paramLengths_.assign(paramStrings_.size(), 0);
+      paramFormats_.assign(paramStrings_.size(), 0);
+
+      PQclear(res);
+      return true;
+    }
+    catch (const std::exception &e)
+    {
+      PQclear(res);
+      sendError(e.what());
+      return false;
+    }
+  }
+
+  bool CreatePostOp::onCreate(PGresult *res)
+  {
     try
     {
       int cols = PQnfields(res);
