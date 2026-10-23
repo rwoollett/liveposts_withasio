@@ -42,8 +42,8 @@ namespace Routes::LivePosts
 
     static constexpr const char *sql =
           "INSERT INTO \"Users\" "
-          "(\"authId\", \"name\") VALUES ($1, $2) "
-          "RETURNING id, \"authId\", \"name\""
+          "(\"authUserEmail\", \"authUserId\", \"name\") VALUES ($1, $2, $3) "
+          "RETURNING id, \"authUserId\", \"authUserEmail\", \"name\""
           ";";
   };
 }

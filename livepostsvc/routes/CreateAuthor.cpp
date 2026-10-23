@@ -51,6 +51,7 @@ namespace Routes::LivePosts
     // Build paramStrings_ (owned)
     paramStrings_.clear();
     paramStrings_.push_back(userInput_.authUserEmail);
+    paramStrings_.push_back(userInput_.authUserId);
     paramStrings_.push_back(userInput_.name);
 
     // Build paramValues_
