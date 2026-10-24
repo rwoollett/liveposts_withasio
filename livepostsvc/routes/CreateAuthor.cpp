@@ -34,7 +34,7 @@ namespace Routes::LivePosts
   {
     try
     {
-      userInput_ = json::parse(ctx_.req.body());
+      userCreateInput_ = json::parse(ctx_.req.body());
     }
     catch (...)
     {
@@ -42,7 +42,7 @@ namespace Routes::LivePosts
       return false;
     }
 
-    if (!LivePostsModel::Validate::Users(userInput_))
+    if (!LivePostsModel::Validate::UserCreate(userCreateInput_))
     {
       sendError("Invalid Game data");
       return false;
@@ -50,9 +50,9 @@ namespace Routes::LivePosts
 
     // Build paramStrings_ (owned)
     paramStrings_.clear();
-    paramStrings_.push_back(userInput_.authUserEmail);
-    paramStrings_.push_back(userInput_.authUserId);
-    paramStrings_.push_back(userInput_.name);
+    paramStrings_.push_back(userCreateInput_.user.authUserEmail);
+    paramStrings_.push_back(userCreateInput_.user.authUserId);
+    paramStrings_.push_back(userCreateInput_.user.authUserEmail);
 
     // Build paramValues_
     paramValues_.clear();
@@ -112,10 +112,19 @@ namespace Routes::LivePosts
     {
       int cols = PQnfields(res);
       auto author = LivePostsModel::PG::Users::fromPGRes(res, cols, 0);
-      PQclear(res);
       
       json root;
       root["createUser"] = author;
+
+      LivePostsEvents::UserCreatedEvent eventCreated;
+      eventCreated.wsId = userCreateInput_.wsId;
+
+      json jsonEvent = eventCreated;
+      ctx_.redis->publish(
+          std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
+          jsonEvent.dump());
+
+      PQclear(res);
       sendSuccess(root.dump());
     }
     catch (const std::string &e)
