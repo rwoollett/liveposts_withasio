@@ -30,29 +30,18 @@ namespace Routes::LivePosts
 
   bool FetchAuthorOp::parseReq()
   {
-    try
+    params_ = ctx_.session->getReqUrlParameters();
+
+    if (params_["wsId"].empty())
     {
-      json jsonIn = json::parse(ctx_.req.body());
-      if (jsonIn.contains("wsId"))
-      {
-        jsonIn.at("wsId").get_to(wsId_);
-      }
-      else
-      {
-        sendError("JSON input needs wsId");
-        return false;
-      }
-    }
-    catch (...)
-    {
-      sendError("Invalid JSON");
+      sendError("Invalid fetch author requires wsId");
       return false;
     }
 
     mt_logging::logger().log(
         {fmt::format(
              " FetchAuthorOp::parseReq: user auth email {}  user auth id {}  wsId {}",
-             ctx_.authUserEmail, ctx_.authUserId, wsId_),
+             ctx_.authUserEmail, ctx_.authUserId, params_["wsId"]),
          mt_logging::LogLevel::Debug,
          true});
 
@@ -137,7 +126,7 @@ namespace Routes::LivePosts
 
         LivePostsEvents::UserCreateEvent event;
         event.authUserEmail = ctx_.authUserEmail;
-        event.wsId = wsId_;
+        event.wsId = params_["wsId"];
         json jsonEvent = event;
         mt_logging::logger().log(
             {fmt::format(
@@ -150,7 +139,7 @@ namespace Routes::LivePosts
             std::string(LivePostsEvents::SubjectNames.at(event.subject)),
             {std::pair<std::string, std::string>{"authUserEmail", ctx_.authUserEmail},
              std::pair<std::string, std::string>{"authUserId", ctx_.authUserId},
-             std::pair<std::string, std::string>{"wsId", wsId_}});
+             std::pair<std::string, std::string>{"wsId", params_["wsId"]}});
 
         mt_logging::logger().log(
             {fmt::format(

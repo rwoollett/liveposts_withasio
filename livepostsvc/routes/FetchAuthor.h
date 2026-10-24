@@ -30,7 +30,7 @@ namespace Routes::LivePosts
     void sendSuccess(const std::string &body);
 
   private:
-    std::string wsId_;
+    Rest::Parameters params_;
     LivePostsModel::User user_;
 
     RequestContext ctx_;
