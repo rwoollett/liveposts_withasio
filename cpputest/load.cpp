@@ -78,8 +78,8 @@ int main(int, char **)
 
   while (true)
   {
-    int total_items = 120; // 13 threads is causing DB Pool exhaustion
-    int size_set = 10;
+    int total_items = 60; 
+    int size_set = 20;
     try
     {
       range_list ranges;
@@ -110,7 +110,7 @@ int main(int, char **)
 
           for (int i = x; i <= y; i++)
           {
-            std::this_thread::sleep_for(std::chrono::milliseconds(150));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             ApiResponse<std::optional<LivePostsModel::Post>> v;
             conn.SetHeaders(headers);
 
