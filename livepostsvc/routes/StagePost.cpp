@@ -138,32 +138,25 @@ namespace Routes::LivePosts
 
       root["stagePost"] = updatedPostStage_;
       // Set status to Live:
-      // 1) do prerender and send broadcast stagepostevent
+      // 1) produce prerender job on stream PostStageEvent
       // 2) and postpublishevent for caller wsid
-
-      auto t0 = std::chrono::system_clock::now();
-
-      json jsonPost = updatedPostStage_;
-      Prerender::prerenderPost(jsonPost.dump());
-
-      auto t1 = std::chrono::system_clock::now();
-      auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
-      auto timeTaken = milliseconds.count();
-      mt_logging::logger().log(
-          {fmt::format(
-               "StagePostOp::onWorkResult  Prerender usage {}",
-               timeTaken),
-           mt_logging::LogLevel::Info,
-           true});
 
       LivePostsEvents::PostStageEvent eventStage;
       eventStage.id = updatedPostStage_.id;
       eventStage.slug = updatedPostStage_.slug;
 
       json jsonEvent = eventStage;
-      ctx_.redis->publish(
-          std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
-          jsonEvent.dump());
+      // Use partition on post id
+      int partition = updatedPostStage_.id % 4;
+      auto stream =
+          fmt::format("{}_{}", 
+            std::string(LivePostsEvents::SubjectNames.at(eventStage.subject)), 
+            partition);
+
+      ctx_.redis->produce(
+          stream,
+          {std::pair<std::string, std::string>{"postId", std::to_string(updatedPostStage_.id)}});
+
 
       // and send PublishEvent
       LivePostsEvents::PostPublishedEvent eventPublish;
