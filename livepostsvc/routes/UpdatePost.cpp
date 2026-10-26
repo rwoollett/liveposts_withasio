@@ -272,8 +272,15 @@ namespace Routes::LivePosts
       event.wsId = postUpdate_.wsId;
       json jsonEvent = event;
 
+      // Use partition on post id
+      int partition = updatedPost_.id % 4;
+      auto stream =
+          fmt::format("{}_{}",
+                      std::string(LivePostsEvents::SubjectNames.at(event.subject)),
+                      partition);
+
       ctx_.redis->produce(
-          std::string(LivePostsEvents::SubjectNames.at(event.subject)),
+          stream,
           {std::pair<std::string, std::string>{"postId", std::to_string(updatedPost_.id)},
            std::pair<std::string, std::string>{"wsId", postUpdate_.wsId}});
 
