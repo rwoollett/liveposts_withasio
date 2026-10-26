@@ -118,9 +118,6 @@ namespace Routes::LivePosts
 
       // Status is Live:
       // 1) do prerender and send broadcast stagepostevent
-
-      std::string slug = slugger::make_slug(prerenderPost_.title, params_["postId"], 30);
-
       json jsonPost = prerenderPost_;
       Prerender::prerenderPost(jsonPost.dump());
 
