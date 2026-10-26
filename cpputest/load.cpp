@@ -78,8 +78,8 @@ int main(int, char **)
 
   while (true)
   {
-    int total_items = 60; 
-    int size_set = 20;
+    int total_items = 30; 
+    int size_set = 10;
     try
     {
       range_list ranges;
