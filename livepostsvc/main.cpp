@@ -300,9 +300,10 @@ int main(int argc, char *argv[])
 
     // NetProcessor calls to LivePost Svc. req NetProc_user authorisation from authenticated NetProc user
     restserver->get("/api/v1/liveposts/fetch/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::fetchPostById);
+    restserver->put("/api/v1/liveposts/reject/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::rejectPost);
     restserver->put("/api/v1/liveposts/stage/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::stagePost);
     restserver->put("/api/v1/liveposts/promote/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::promotePost);
-    restserver->put("/api/v1/liveposts/reject/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::rejectPost);
+    restserver->put("/api/v1/liveposts/prerender/post/{postId}", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::prerenderPost);
 
     restserver->put("/api/v1/liveposts/users", "netproc", Rest::DbRequirement::Required, Routes::LivePosts::createAuthor); // this should only be server side done
     restserver->get("/api/v1/liveposts/user/fetchauthor/{wsId}", "*", Rest::DbRequirement::Required, Routes::LivePosts::fetchAuthor);

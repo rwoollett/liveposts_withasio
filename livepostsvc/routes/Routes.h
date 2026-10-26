@@ -7,6 +7,7 @@
 #include "FetchPost.h"
 #include "FetchPostById.h"
 #include "PromotePost.h"
+#include "PrerenderPost.h"
 #include "RouteCommon.h"
 #include "StagePost.h"
 #include "RejectPost.h"
@@ -66,6 +67,12 @@ namespace Routes
     inline void promotePost(RequestContext ctx)
     {
       auto op = std::make_shared<PromotePostOp>(std::move(ctx));
+      op->start();
+    }
+
+    inline void prerenderPost(RequestContext ctx)
+    {
+      auto op = std::make_shared<PrerenderPostOp>(std::move(ctx));
       op->start();
     }
 
