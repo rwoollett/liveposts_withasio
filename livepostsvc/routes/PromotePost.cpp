@@ -140,9 +140,20 @@ namespace Routes::LivePosts
       // Set status to Live:
       // 1) do prerender and send broadcast stagepostevent
       // 2) and postpublishevent for caller wsid
+      auto t0 = std::chrono::system_clock::now();
 
       json jsonPost = updatedPostStage_;
       Prerender::prerenderPost(jsonPost.dump());
+
+      auto t1 = std::chrono::system_clock::now();
+      auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
+      auto timeTaken = milliseconds.count();
+      mt_logging::logger().log(
+          {fmt::format(
+               "PromotePostOp::onWorkResult  Prerender usage {}",
+               timeTaken),
+           mt_logging::LogLevel::Info,
+           true});
 
       LivePostsEvents::PostStageEvent eventStage;
       eventStage.id = updatedPostStage_.id;
