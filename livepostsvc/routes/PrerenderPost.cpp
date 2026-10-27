@@ -106,15 +106,14 @@ namespace Routes::LivePosts
 
       if (rows == 0)
       {
-        root["prerenderPost"] = json::array();
+        root["prerenderPost"] = "No rows returned from query";
         PQclear(res);
-        sendError("Prerender post failed: No post found " + root.dump());
+        sendError("Prerender post failed: No post found.");
         return;
       }
 
-      root["prerenderPost"] = json::array();
       prerenderPost_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
-      root["prerenderPost"].push_back(prerenderPost_);
+      root["prerenderPost"] = prerenderPost_;
 
       // Status is Live:
       // 1) do prerender and send broadcast stagepostevent
