@@ -284,6 +284,14 @@ namespace Routes::LivePosts
           {std::pair<std::string, std::string>{"postId", std::to_string(updatedPost_.id)},
            std::pair<std::string, std::string>{"wsId", postUpdate_.wsId}});
 
+      // and send PostStatusChangedEvent
+      LivePostsEvents::PostStatusChangedEvent eventStatusChanged;
+      eventStatusChanged.postId = updatedPost_.id;
+      eventStatusChanged.status = LivePostsModel::PostStatus::PendingModeration;
+      eventStatusChanged.authorUserId = updatedPost_.userId;
+      eventStatusChanged.slug = "N/A";
+      eventStatusChanged.wsId = postUpdate_.wsId;
+
       sendSuccess(resultBody_);
       state_ = State::Done;
       return;

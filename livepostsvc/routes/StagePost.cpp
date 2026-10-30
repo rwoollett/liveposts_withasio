@@ -158,7 +158,7 @@ namespace Routes::LivePosts
           {std::pair<std::string, std::string>{"postId", std::to_string(updatedPostStage_.id)}});
 
 
-      // and send PublishEvent
+      // and send PostStatusChangedEvent
       LivePostsEvents::PostStatusChangedEvent eventPublish;
       eventPublish.postId = updatedPostStage_.id;
       eventPublish.status = LivePostsModel::PostStatus::Live;

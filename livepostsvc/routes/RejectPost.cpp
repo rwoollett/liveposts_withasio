@@ -115,6 +115,11 @@ namespace Routes::LivePosts
 
       root["rejectPost"] = updatedPostStage_;
 
+      // and send PostStatusChangedEvent
+      LivePostsEvents::PostStatusChangedEvent eventStatusChanged;
+      eventStatusChanged.postId = updatedPostStage_.id;
+      eventStatusChanged.status = LivePostsModel::PostStatus::Rejected;
+
       sendSuccess(root.dump());
     }
     catch (const std::string &e)

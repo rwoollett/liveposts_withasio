@@ -264,14 +264,27 @@ namespace Routes::LivePosts
       // Use partition on post id
       int partition = newPost_.id % 4;
       auto stream =
-          fmt::format("{}_{}", 
-            std::string(LivePostsEvents::SubjectNames.at(event.subject)), 
-            partition);
+          fmt::format("{}_{}",
+                      std::string(LivePostsEvents::SubjectNames.at(event.subject)),
+                      partition);
 
       ctx_.redis->produce(
           stream,
           {std::pair<std::string, std::string>{"postId", std::to_string(newPost_.id)},
            std::pair<std::string, std::string>{"wsId", postCreate_.wsId}});
+
+      // and send PostStatusChangedEvent
+      LivePostsEvents::PostStatusChangedEvent eventStatusChanged;
+      eventStatusChanged.postId = newPost_.id;
+      eventStatusChanged.status = LivePostsModel::PostStatus::PendingModeration;
+      eventStatusChanged.authorUserId = newPost_.userId;
+      eventStatusChanged.slug = "N/A";
+      eventStatusChanged.wsId = postCreate_.wsId;
+
+      json jsonPublishEvent = eventStatusChanged;
+      ctx_.redis->publish(
+          std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
+          jsonPublishEvent.dump());
 
       sendSuccess(resultBody_);
       state_ = State::Done;
