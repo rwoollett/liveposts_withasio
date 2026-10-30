@@ -159,8 +159,9 @@ namespace Routes::LivePosts
 
 
       // and send PublishEvent
-      LivePostsEvents::PostPublishedEvent eventPublish;
+      LivePostsEvents::PostStatusChangedEvent eventPublish;
       eventPublish.postId = updatedPostStage_.id;
+      eventPublish.status = LivePostsModel::PostStatus::Live;
       eventPublish.authorUserId = updatedPostStage_.userId;
       eventPublish.slug = updatedPostStage_.slug;
       eventPublish.wsId = stagePostInput_.wsId;
