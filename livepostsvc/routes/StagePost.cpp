@@ -138,10 +138,10 @@ namespace Routes::LivePosts
 
       root["stagePost"] = updatedPostStage_;
       // Set status to Live:
-      // 1) produce prerender job on stream PostStageEvent
+      // 1) produce prerender job on stream PostRenderEvent
       // 2) and postpublishevent for caller wsid
 
-      LivePostsEvents::PostStageEvent eventStage;
+      LivePostsEvents::PostRenderEvent eventStage;
       eventStage.id = updatedPostStage_.id;
       eventStage.slug = updatedPostStage_.slug;
 
