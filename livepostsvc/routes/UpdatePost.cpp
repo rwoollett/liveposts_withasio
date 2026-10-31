@@ -203,7 +203,6 @@ namespace Routes::LivePosts
 
       if (rows == 0)
       {
-        PQclear(res);
         mt_logging::logger().log(
             {fmt::format(
                  " UpdatePostOp::onAuthCheck: Not successfully authorized to update post id {}. user email {}  user auth id {}",
@@ -211,6 +210,7 @@ namespace Routes::LivePosts
              mt_logging::LogLevel::Info,
              true});
 
+        PQclear(res);
         sendError("Not successfully authorized to update post");
         return false;
       }

@@ -111,7 +111,6 @@ namespace Routes::LivePosts
 
       // Only one row is returned
       updatedPostStage_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
-      PQclear(res);
 
       root["rejectPost"] = updatedPostStage_;
 
@@ -120,6 +119,7 @@ namespace Routes::LivePosts
       eventStatusChanged.postId = updatedPostStage_.id;
       eventStatusChanged.status = LivePostsModel::PostStatus::Rejected;
 
+      PQclear(res);
       sendSuccess(root.dump());
     }
     catch (const std::string &e)

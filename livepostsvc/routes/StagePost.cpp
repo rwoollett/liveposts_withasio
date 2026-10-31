@@ -134,7 +134,6 @@ namespace Routes::LivePosts
 
       // Only one row is returned
       updatedPostStage_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
-      PQclear(res);
 
       root["stagePost"] = updatedPostStage_;
       // Set status to Live:
@@ -149,14 +148,13 @@ namespace Routes::LivePosts
       // Use partition on post id
       int partition = updatedPostStage_.id % 4;
       auto stream =
-          fmt::format("{}_{}", 
-            std::string(LivePostsEvents::SubjectNames.at(eventStage.subject)), 
-            partition);
+          fmt::format("{}_{}",
+                      std::string(LivePostsEvents::SubjectNames.at(eventStage.subject)),
+                      partition);
 
       ctx_.redis->produce(
           stream,
           {std::pair<std::string, std::string>{"postId", std::to_string(updatedPostStage_.id)}});
-
 
       // and send PostStatusChangedEvent
       LivePostsEvents::PostStatusChangedEvent eventPublish;
@@ -171,6 +169,7 @@ namespace Routes::LivePosts
           std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
           jsonPublishEvent.dump());
 
+      PQclear(res);
       sendSuccess(root.dump());
     }
     catch (const std::string &e)

@@ -134,7 +134,6 @@ namespace Routes::LivePosts
 
       // Only one row is returned
       updatedPostStage_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
-      PQclear(res);
 
       root["promotePost"] = updatedPostStage_;
       // Set status to Live:
@@ -171,6 +170,7 @@ namespace Routes::LivePosts
           std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
           jsonPublishEvent.dump());
 
+      PQclear(res);
       sendSuccess(root.dump());
     }
     catch (const std::string &e)
