@@ -28,12 +28,19 @@ std::vector<LivePostsModel::Post> liveposts_creator(int amt)
 
   for (int i = 0; i < amt; i++)
   {
+    auto r1 = itemran();
+    auto r2 = itemran();
+    std::string title{names[itemran()] + " "};
+    for (int k = 0; k < itemran(); k++) {
+      title += names[itemran()] + " ";
+    }
+
     LivePostsModel::Post post;
     post.id = -1;
     post.userId = 1;
     post.userName = "Temp User at Hello co nz";
     post.content = "Their bird was, in this moment, a silly bear. They were lost without the amicable kiwi that composed their fox. A peach is an amicable crocodile. A tidy fox without sharks is truly a scorpion of willing cats. Shouting with happiness, a currant is a wise currant!";
-    post.title = "Some tough spiders are thought of simply as figs";
+    post.title = title;
     liveposts.push_back(post);
   }
   return liveposts;
@@ -78,7 +85,7 @@ int main(int, char **)
 
   while (true)
   {
-    int total_items = 30; 
+    int total_items = 30;
     int size_set = 10;
     try
     {
@@ -101,8 +108,8 @@ int main(int, char **)
 
       for (int i = 0; i < ranges.size(); i++)
         conn_list.emplace_back(std::make_unique<RestClient::Connection>(SERVER_URL));
-
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
       auto create_post = [wsId, &headers, &livepost_list, doPrint, doPrintHeader](RestClient::Connection &conn, int x, int y)
       {
         try
@@ -110,7 +117,7 @@ int main(int, char **)
 
           for (int i = x; i <= y; i++)
           {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             ApiResponse<std::optional<LivePostsModel::Post>> v;
             conn.SetHeaders(headers);
 
@@ -137,7 +144,7 @@ int main(int, char **)
               {
                 auto response = std::get<std::optional<LivePostsModel::Post>>(v).value();
                 livepost_list[i].id = response.id;
-                std::cerr << "[post=" << response.id << " i=" << i << "] ";
+                std::cerr << "[post=" << response.id << " " << response.title << " i=" << i << "]\n";
               }
             }
             catch (json::exception &e)
@@ -151,12 +158,12 @@ int main(int, char **)
         }
         catch (const std::exception &e)
         {
-          std::cerr << "create_game thread exception: " << e.what() << "\n";
+          std::cerr << "create_post thread exception: " << e.what() << "\n";
           exit(1);
         }
         catch (...)
         {
-          std::cerr << "create_game thread exception: unknown\n";
+          std::cerr << "create_post thread exception: unknown\n";
           exit(1);
         }
       };
@@ -284,6 +291,7 @@ int main(int, char **)
         }
       };
 
+      // Begin the test in threads
       std::vector<std::thread> create_threads;
       create_threads.reserve(ranges.size());
       for (size_t i = 0; i < ranges.size(); ++i)
@@ -321,7 +329,7 @@ int main(int, char **)
       //   t.join();
       // }
       // std::cerr << "\nDone Start threads" << std::endl;
-      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
       // std::vector<std::thread> play_threads;
       // play_threads.reserve(ranges.size());
