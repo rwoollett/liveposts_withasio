@@ -267,8 +267,10 @@ namespace Routes::LivePosts
 
     try
     {
-      LivePostsEvents::PostUpdateEvent event;
-      event.id = updatedPost_.id;
+
+      LivePostsEvents::PostModerateEvent event;
+      event.postId = updatedPost_.id;
+      event.flowMode = LivePostsEvents::FlowMode::Update;
       event.wsId = postUpdate_.wsId;
       json jsonEvent = event;
 
@@ -282,15 +284,21 @@ namespace Routes::LivePosts
       ctx_.redis->produce(
           stream,
           {std::pair<std::string, std::string>{"postId", std::to_string(updatedPost_.id)},
+           std::pair<std::string, std::string>{"flowMode", LivePostsEvents::to_string(LivePostsEvents::FlowMode::Update)},
            std::pair<std::string, std::string>{"wsId", postUpdate_.wsId}});
 
-      // and send PostStatusChangedEvent
+      // and publish PostStatusChangedEvent
       LivePostsEvents::PostStatusChangedEvent eventStatusChanged;
       eventStatusChanged.postId = updatedPost_.id;
       eventStatusChanged.status = LivePostsModel::PostStatus::PendingModeration;
       eventStatusChanged.authorUserId = updatedPost_.userId;
       eventStatusChanged.slug = "N/A";
       eventStatusChanged.wsId = postUpdate_.wsId;
+
+      json jsonPublishEvent = eventStatusChanged;
+      ctx_.redis->publish(
+          std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
+          jsonPublishEvent.dump());
 
       sendSuccess(resultBody_);
       state_ = State::Done;
