@@ -2,6 +2,7 @@
 
 # Path to your cstoken env file
 svcEnvPath="$HOME/netproc_infra/env/liveposts/.env"
+mypass=$1
 
 if [[ ! -f "$svcEnvPath" ]]; then
     echo "ERROR: .env not found at $svcEnvPath"
@@ -34,6 +35,18 @@ export PRERENDER_SCRIPT=./posts-vite-app/scripts/prerenderhydrate.mjs
 export APIDB_HOST=localhost
 export APIDB_PORT=5440
 export MTLOG_LEVEL=debug
+
+mypass="$1"
+export TEST_COOKIE=$(
+  curl -s -D - \
+    -H "Content-Type: application/json" \
+    -X POST http://localhost:3001/api/v1/users/signin \
+    -d "{\"email\":\"temp@test.co.nz\",\"password\":\"$mypass\"}" \
+  | awk '/^Set-Cookie:/ {print $2; exit}' \
+  | sed 's/;$//'
+)
+
+echo "$TEST_COOKIE"
 
 
 
