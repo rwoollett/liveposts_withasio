@@ -292,8 +292,10 @@ namespace Routes::LivePosts
 
       auto t1 = std::chrono::system_clock::now();
       auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0_);
-      mt_logging::logger().log({fmt::format(" CreatePostOp::onCommit Route duration :{} ms",
-                                            milliseconds.count()),
+      mt_logging::logger().log({fmt::format(" CreatePostOp::onCommit Route duration :{} ms.  Post {}  Partition {}",
+                                            milliseconds.count(),
+                                            newPost_.id,
+                                            partition),
                                 mt_logging::LogLevel::Info, true});
 
       sendSuccess(resultBody_);
