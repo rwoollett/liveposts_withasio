@@ -254,7 +254,7 @@ namespace Prerender
                                                   result.route,
                                                   result.finalDir,
                                                   result.stagingDir),
-                              .level = mt_logging::LogLevel::Info,
+                              .level = mt_logging::LogLevel::Debug,
                               .include_thread_id = true});
     // std::cout << "prerenderPost result: " << std::endl
     //           << "ok " << result.ok << std::endl

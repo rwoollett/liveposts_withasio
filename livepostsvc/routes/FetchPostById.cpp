@@ -30,6 +30,8 @@ namespace Routes::LivePosts
 
   bool FetchPostByIdOp::parseReq()
   {
+    t0_ = std::chrono::system_clock::now();
+
     params_ = ctx_.session->getReqUrlParameters();
 
     if (params_["postId"].empty())
@@ -41,7 +43,6 @@ namespace Routes::LivePosts
     // Build paramStrings_ (owned)
     paramStrings_.clear();
     paramStrings_.push_back(params_["postId"]);
-
 
     // Build paramValues_
     paramValues_.clear();
@@ -118,6 +119,13 @@ namespace Routes::LivePosts
         root["fetchPostById"].push_back(post);
       }
       PQclear(res);
+      auto t1 = std::chrono::system_clock::now();
+      auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0_);
+      mt_logging::logger().log({fmt::format(" FetchPostByIdOp::onWorkResult  duration :{} ms.  Post {}",
+                                            milliseconds.count(),
+                                            params_["postId"]),
+                                mt_logging::LogLevel::Info, true});
+
       sendSuccess(root.dump());
     }
     catch (const std::exception &e)

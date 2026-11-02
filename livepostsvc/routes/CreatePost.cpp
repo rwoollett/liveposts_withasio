@@ -205,6 +205,13 @@ namespace Routes::LivePosts
       paramLengths_.assign(paramStrings_.size(), 0);
       paramFormats_.assign(paramStrings_.size(), 0);
 
+      auto t1 = std::chrono::system_clock::now();
+      auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0_);
+      mt_logging::logger().log({fmt::format(" CreatePostOp::onAuthFind Route duration :{} ms.  Post {}",
+                                            milliseconds.count(),
+                                            newPost_.id),
+                                mt_logging::LogLevel::Info, true});
+
       PQclear(res);
       return true;
     }
@@ -227,6 +234,13 @@ namespace Routes::LivePosts
       root["createPost"] = newPost_;
       resultBody_ = root.dump();
       PQclear(res);
+
+      auto t1 = std::chrono::system_clock::now();
+      auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0_);
+      mt_logging::logger().log({fmt::format(" CreatePostOp::onCreate Route duration :{} ms.  Post {}",
+                                            milliseconds.count(),
+                                            newPost_.id),
+                                mt_logging::LogLevel::Info, true});
       return true;
     }
     catch (const std::exception &e)

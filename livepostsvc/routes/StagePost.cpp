@@ -32,6 +32,8 @@ namespace Routes::LivePosts
 
   bool StagePostOp::parseReq()
   {
+    t0_ = std::chrono::system_clock::now();
+
     params_ = ctx_.session->getReqUrlParameters();
 
     if (params_["postId"].empty())
@@ -170,6 +172,13 @@ namespace Routes::LivePosts
           jsonPublishEvent.dump());
 
       PQclear(res);
+      auto t1 = std::chrono::system_clock::now();
+      auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0_);
+      mt_logging::logger().log({fmt::format(" StagePostOp::onWorkResult      duration :{} ms.  Post {}",
+                                            milliseconds.count(),
+                                            params_["postId"]),
+                                mt_logging::LogLevel::Info, true});
+
       sendSuccess(root.dump());
     }
     catch (const std::string &e)

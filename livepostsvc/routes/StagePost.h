@@ -30,6 +30,8 @@ namespace Routes::LivePosts
     void sendSuccess(const std::string &body);
 
   private:
+    std::chrono::_V2::system_clock::time_point t0_;
+
     Rest::Parameters params_;
     LivePostsModel::PostStage stagePostInput_;
     LivePostsModel::Post updatedPostStage_;
