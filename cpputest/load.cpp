@@ -31,7 +31,8 @@ std::vector<LivePostsModel::Post> liveposts_creator(int amt)
     auto r1 = itemran();
     auto r2 = itemran();
     std::string title{names[itemran()] + " "};
-    for (int k = 0; k < itemran(); k++) {
+    for (int k = 0; k < itemran(); k++)
+    {
       title += names[itemran()] + " ";
     }
 
@@ -127,6 +128,7 @@ int main(int, char **)
             p.content = livepost_list[i].content;
             RestClient::Response rx;
             json j = p;
+            auto t0 = std::chrono::system_clock::now();
             rx = conn.put("/api/v1/liveposts/posts", j.dump());
             std::string errs{};
             PrintLog(std::string(std::to_string(i) + " - put (\"/api/v1/liveposts/posts\")"), doPrint, doPrintHeader, rx);
@@ -154,6 +156,11 @@ int main(int, char **)
               std::cerr << "**************" << errs << "\n";
               exit(1);
             }
+
+            auto t1 = std::chrono::system_clock::now();
+            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
+            std::cerr << "Route duration : " << milliseconds.count() << "ms. \n";
+
           } //
         }
         catch (const std::exception &e)
@@ -300,7 +307,11 @@ int main(int, char **)
         create_threads.emplace_back(
             [create_post, conn = conn_list[i].get(), i, range]()
             {
+              auto t0 = std::chrono::system_clock::now();
               create_post(*conn, range.first, range.second);
+              auto t1 = std::chrono::system_clock::now();
+              auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
+              std::cerr << "Routes in range duration : " << milliseconds.count() << "ms. \n";
             });
         std::cerr << "[" << range.first << "," << range.second << "] ";
       }

@@ -30,6 +30,7 @@ namespace Routes::LivePosts
 
   bool CreatePostOp::parseReq()
   {
+    t0_ = std::chrono::system_clock::now();
     try
     {
       postCreate_ = json::parse(ctx_.req.body());
@@ -221,7 +222,7 @@ namespace Routes::LivePosts
     {
       int cols = PQnfields(res);
       newPost_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
-      
+
       json root;
       root["createPost"] = newPost_;
       resultBody_ = root.dump();
@@ -288,6 +289,12 @@ namespace Routes::LivePosts
       ctx_.redis->publish(
           std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
           jsonPublishEvent.dump());
+
+      auto t1 = std::chrono::system_clock::now();
+      auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0_);
+      mt_logging::logger().log({fmt::format(" CreatePostOp::onCommit Route duration :{} ms",
+                                            milliseconds.count()),
+                                mt_logging::LogLevel::Info, true});
 
       sendSuccess(resultBody_);
       state_ = State::Done;

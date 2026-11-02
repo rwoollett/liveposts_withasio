@@ -48,6 +48,8 @@ namespace Routes::LivePosts
     }
 
   private:
+    std::chrono::_V2::system_clock::time_point t0_;
+
     LivePostsModel::PostCreate postCreate_;
     LivePostsModel::User postUser_;
     LivePostsModel::Post newPost_;
