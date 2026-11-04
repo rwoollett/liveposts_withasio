@@ -330,7 +330,7 @@ int main(int argc, char *argv[])
           ioc.stop();
         });
 
-    // Run the Terminator(single thread) and I/O service on the requested number of threads
+    // Run the Terminator(single thread) eight and I/O service on the requested number of threads
     // for the Api server routes.
     std::vector<std::thread> v;
     v.reserve(threads - 1);
