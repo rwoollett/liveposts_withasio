@@ -53,4 +53,4 @@ WORKDIR /usr/src
 
 EXPOSE 3011
 
-ENTRYPOINT [ "LivePostSvc", "--threads", "3", "--root", "/usr/src/latest"]
+ENTRYPOINT [ "LivePostSvc", "--threads", "8", "--root", "/usr/src/latest"]
