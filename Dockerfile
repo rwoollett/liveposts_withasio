@@ -26,7 +26,6 @@ RUN strip /usr/local/bin/LivePostSvc
 FROM runtime_base AS livepostsvc_runtime
 
 ARG node_version=v22.21.1
-ARG THREAD_COUNT
 RUN cd / && curl -fsSL https://nodejs.org/dist/$node_version/node-$node_version-linux-x64.tar.gz -o node.tar.gz \
     && tar -xzvf node.tar.gz && rm node.tar.gz \
     && echo "export PATH=$PATH:/node-$version-linux-x64/bin" >> /root/.bashrc
@@ -52,6 +51,9 @@ LABEL org.opencontainers.image.api-revision=$APISERVER_COMMIT
 
 WORKDIR /usr/src 
 
+ARG THREAD_COUNT=3
+ENV THREAD_COUNT=${THREAD_COUNT}
+
 EXPOSE 3011
 
-ENTRYPOINT [ "LivePostSvc", "--threads", "$THREAD_COUNT", "--root", "/usr/src/latest"]
+ENTRYPOINT ["sh", "-c", "exec LivePostSvc --threads \"$THREAD_COUNT\" --root /usr/src/latest"]
