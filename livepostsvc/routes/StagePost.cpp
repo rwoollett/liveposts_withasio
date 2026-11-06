@@ -60,6 +60,12 @@ namespace Routes::LivePosts
 
     std::string slug = slugger::make_slug(stagePostInput_.title, params_["postId"], 30);
     std::cout << slug << "\n";
+    auto t1 = std::chrono::system_clock::now();
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0_);
+    mt_logging::logger().log({fmt::format(" StagePostOp::parseReq  slug creation duration :{} ms.  Post {}",
+                                          milliseconds.count(),
+                                          params_["postId"]),
+                              mt_logging::LogLevel::Info, true});
 
     // Build paramStrings_ (owned)
     paramStrings_.clear();

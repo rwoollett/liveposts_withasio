@@ -32,6 +32,8 @@ namespace Routes::LivePosts
 
   bool PrerenderPostOp::parseReq()
   {
+    t0_ = std::chrono::system_clock::now();
+
     params_ = ctx_.session->getReqUrlParameters();
 
     if (params_["postId"].empty())
@@ -112,6 +114,13 @@ namespace Routes::LivePosts
         return;
       }
 
+      auto t1 = std::chrono::system_clock::now();
+      auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0_);
+      mt_logging::logger().log({fmt::format(" PrerenderPostOp::onWorkResult async sql duration :{} ms.  Post {}",
+                                            milliseconds.count(),
+                                            params_["postId"]),
+                                mt_logging::LogLevel::Info, true});
+
       prerenderPost_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
       root["prerenderPost"] = prerenderPost_;
 
@@ -119,6 +128,13 @@ namespace Routes::LivePosts
       // 1) do prerender and send broadcast stagepostevent
       json jsonPost = prerenderPost_;
       Prerender::prerenderPost(jsonPost.dump());
+
+      auto tA1 = std::chrono::system_clock::now();
+      auto millisecondsA = std::chrono::duration_cast<std::chrono::milliseconds>(tA1 - t1);
+      mt_logging::logger().log({fmt::format(" PrerenderPostOp::onWorkResult prerender duration :{} ms.  Post {}",
+                                            millisecondsA.count(),
+                                            params_["postId"]),
+                                mt_logging::LogLevel::Info, true});
 
       LivePostsEvents::PostStageEvent eventStage;
       eventStage.id = prerenderPost_.id;
@@ -128,6 +144,12 @@ namespace Routes::LivePosts
           std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
           jsonEvent.dump());
 
+      auto tB1 = std::chrono::system_clock::now();
+      auto millisecondsB = std::chrono::duration_cast<std::chrono::milliseconds>(tB1 - t0_);
+      mt_logging::logger().log({fmt::format(" PrerenderPostOp::onWorkResult total duration :{} ms.  Post {}",
+                                            millisecondsB.count(),
+                                            params_["postId"]),
+                                mt_logging::LogLevel::Info, true});
       PQclear(res);
       sendSuccess(root.dump());
     }
