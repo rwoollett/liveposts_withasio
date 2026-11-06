@@ -86,7 +86,7 @@ int main(int, char **)
 
   while (true)
   {
-    int total_items = 30;
+    int total_items = 40;
     int size_set = 10;
     try
     {
