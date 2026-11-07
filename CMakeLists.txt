@@ -29,10 +29,10 @@ find_package(Threads)
 # ----------------------------------------
 # Dependencies (installed packages)
 # ----------------------------------------
-find_package(RwllttNet REQUIRED)          # Provides RwllttNet::APIServer
-find_package(WorkQStream REQUIRED)        # Provides WorkQStream::WorkQProduce/Consume
-find_package(RedisPubSub REQUIRED)        # Provides RedisPubSub::RedisPublish/Subscribe
-find_package(MTLog REQUIRED)
+# find_package(RwllttNet REQUIRED)          # Provides RwllttNet::APIServer
+# find_package(WorkQStream REQUIRED)        # Provides WorkQStream::WorkQProduce/Consume
+# find_package(RedisPubSub REQUIRED)        # Provides RedisPubSub::RedisPublish/Subscribe
+# find_package(MTLog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json REQUIRED)
@@ -77,6 +77,11 @@ target_include_directories(LivePostsModel PUBLIC $<BUILD_INTERFACE:${LIBPQ_INCLU
 # ----------------------------------------
 # Service executable
 # ----------------------------------------
+add_subdirectory(mtlog)
+add_subdirectory(redis_pubsub)
+add_subdirectory(redis_stream)
+add_subdirectory(apiserver)
+
 add_subdirectory(livepostsvc)
 
 option(BUILD_TESTS "Build tests" ON)
