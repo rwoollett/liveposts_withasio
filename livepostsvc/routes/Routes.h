@@ -5,6 +5,7 @@
 #include "CreatePost.h"
 #include "FetchAuthor.h"
 #include "FetchPost.h"
+#include "FetchAuthorPost.h"
 #include "FetchPostById.h"
 #include "PromotePost.h"
 #include "PrerenderPost.h"
@@ -49,6 +50,12 @@ namespace Routes
     inline void fetchPosts(RequestContext ctx)
     {
       auto op = std::make_shared<FetchPostOp>(std::move(ctx));
+      op->start();
+    }
+
+    inline void fetchAuthorPosts(RequestContext ctx)
+    {
+      auto op = std::make_shared<FetchAuthorPostOp>(std::move(ctx));
       op->start();
     }
 

@@ -130,6 +130,7 @@ int main(int, char **)
             json j = p;
             auto t0 = std::chrono::system_clock::now();
             rx = conn.put("/api/v1/liveposts/posts", j.dump());
+            auto t1 = std::chrono::system_clock::now();
             std::string errs{};
             PrintLog(std::string(std::to_string(i) + " - put (\"/api/v1/liveposts/posts\")"), doPrint, doPrintHeader, rx);
             json root{};
@@ -157,7 +158,7 @@ int main(int, char **)
               exit(1);
             }
 
-            auto t1 = std::chrono::system_clock::now();
+            //auto t1 = std::chrono::system_clock::now();
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
             std::cerr << "Route duration : " << milliseconds.count() << "ms. \n";
 
@@ -340,7 +341,7 @@ int main(int, char **)
       //   t.join();
       // }
       // std::cerr << "\nDone Start threads" << std::endl;
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
       // std::vector<std::thread> play_threads;
       // play_threads.reserve(ranges.size());

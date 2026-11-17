@@ -11,6 +11,8 @@ add_executable(LivePostSvc
   routes/FetchPostById.cpp
   routes/FetchAuthor.h
   routes/FetchAuthor.cpp
+  routes/FetchAuthorPost.h
+  routes/FetchAuthorPost.cpp
   routes/PrerenderPost.h
   routes/PrerenderPost.cpp
   routes/PromotePost.h

@@ -291,10 +291,11 @@ int main(int argc, char *argv[])
     // Public url to fetch posts for the web
     restserver->get("/api/v1/liveposts/posts", "", Rest::DbRequirement::Required, Routes::LivePosts::fetchPosts);
 
-    // TODO: !! use ctx authUserId toffffind the postuser id for author to add to post. 
+    // CreatePost uses ctx authUserId to retrieve their posts. 
     restserver->put("/api/v1/liveposts/posts", "*", Rest::DbRequirement::Required, Routes::LivePosts::createPost);
-    // UpdatePost has ctx authUserId to check owner of post with the postuser id
+    // UpdatePost and  has ctx authUserId to check owner of post with the postuser id
     restserver->put("/api/v1/liveposts/update/post/{postId}", "*", Rest::DbRequirement::Required, Routes::LivePosts::updatePost);
+    restserver->get("/api/v1/liveposts/user/posts", "*", Rest::DbRequirement::Required, Routes::LivePosts::fetchAuthorPosts);
 
     restserver->put("/api/v1/liveposts/moderate", "*", Rest::DbRequirement::None, Routes::LivePosts::moderate);
 
