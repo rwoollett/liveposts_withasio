@@ -31,7 +31,8 @@ namespace Routes::LivePosts
 
   private:
     Rest::Parameters params_;
-    LivePostsModel::Post updatedPostStage_;
+    LivePostsModel::PostStage rejectPostInput_; // uses same inputs
+    LivePostsModel::Post updatedPostReject_;
 
     RequestContext ctx_;
     Rest::AnySend send_;

@@ -165,17 +165,17 @@ namespace Routes::LivePosts
           {std::pair<std::string, std::string>{"postId", std::to_string(updatedPostStage_.id)}});
 
       // and send PostStatusChangedEvent
-      LivePostsEvents::PostStatusChangedEvent eventPublish;
-      eventPublish.postId = updatedPostStage_.id;
-      eventPublish.status = LivePostsModel::PostStatus::Live;
-      eventPublish.authorUserId = updatedPostStage_.userId;
-      eventPublish.slug = updatedPostStage_.slug;
-      eventPublish.wsId = stagePostInput_.wsId;
+      LivePostsEvents::PostStatusChangedEvent eventStatusChanged;
+      eventStatusChanged.postId = updatedPostStage_.id;
+      eventStatusChanged.status = LivePostsModel::PostStatus::Live;
+      eventStatusChanged.authorUserId = updatedPostStage_.userId;
+      eventStatusChanged.slug = updatedPostStage_.slug;
+      eventStatusChanged.wsId = stagePostInput_.wsId;
 
-      json jsonPublishEvent = eventPublish;
+      json jsonStatusChanged = eventStatusChanged;
       ctx_.redis->publish(
           std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
-          jsonPublishEvent.dump());
+          jsonStatusChanged.dump());
 
       PQclear(res);
       auto t1 = std::chrono::system_clock::now();

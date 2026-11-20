@@ -37,6 +37,22 @@ namespace Routes::LivePosts
       return false;
     }
 
+    try
+    {
+      rejectPostInput_ = json::parse(ctx_.req.body());
+    }
+    catch (...)
+    {
+      sendError("Invalid JSON");
+      return false;
+    }
+
+    if (!LivePostsModel::Validate::PostStage(rejectPostInput_))
+    {
+      sendError("Invalid Reject post data");
+      return false;
+    }
+
     // Build paramStrings_ (owned)
     paramStrings_.clear();
     paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::Rejected));
@@ -110,14 +126,21 @@ namespace Routes::LivePosts
       }
 
       // Only one row is returned
-      updatedPostStage_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
+      updatedPostReject_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
 
-      root["rejectPost"] = updatedPostStage_;
+      root["rejectPost"] = updatedPostReject_;
 
-      // and send PostStatusChangedEvent
       LivePostsEvents::PostStatusChangedEvent eventStatusChanged;
-      eventStatusChanged.postId = updatedPostStage_.id;
+      eventStatusChanged.postId = updatedPostReject_.id;
       eventStatusChanged.status = LivePostsModel::PostStatus::Rejected;
+      eventStatusChanged.authorUserId = updatedPostReject_.userId;
+      eventStatusChanged.slug = updatedPostReject_.slug;
+      eventStatusChanged.wsId = rejectPostInput_.wsId;
+
+      json jsonStatusChanged = eventStatusChanged;
+      ctx_.redis->publish(
+          std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
+          jsonStatusChanged.dump());
 
       PQclear(res);
       sendSuccess(root.dump());

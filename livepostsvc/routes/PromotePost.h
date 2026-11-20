@@ -32,7 +32,7 @@ namespace Routes::LivePosts
   private:
     Rest::Parameters params_;
     LivePostsModel::PostStage promotePostInput_; // uses same inputs
-    LivePostsModel::Post updatedPostStage_;
+    LivePostsModel::Post updatedPostPromote_;
 
     RequestContext ctx_;
     Rest::AnySend send_;

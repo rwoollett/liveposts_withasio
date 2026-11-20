@@ -133,20 +133,20 @@ namespace Routes::LivePosts
       }
 
       // Only one row is returned
-      updatedPostStage_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
+      updatedPostPromote_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
 
-      root["promotePost"] = updatedPostStage_;
+      root["promotePost"] = updatedPostPromote_;
       // Set status to Live:
       // 1) produce prerender job on stream PostRenderEvent
       // 2) and postpublishevent for caller wsid
 
       LivePostsEvents::PostRenderEvent eventStage;
-      eventStage.id = updatedPostStage_.id;
-      eventStage.slug = updatedPostStage_.slug;
+      eventStage.id = updatedPostPromote_.id;
+      eventStage.slug = updatedPostPromote_.slug;
 
       json jsonEvent = eventStage;
       // Use partition on post id
-      int partition = updatedPostStage_.id % 4;
+      int partition = updatedPostPromote_.id % 4;
       auto stream =
           fmt::format("{}_{}", 
             std::string(LivePostsEvents::SubjectNames.at(eventStage.subject)), 
@@ -154,21 +154,21 @@ namespace Routes::LivePosts
 
       ctx_.redis->produce(
           stream,
-          {std::pair<std::string, std::string>{"postId", std::to_string(updatedPostStage_.id)}});
+          {std::pair<std::string, std::string>{"postId", std::to_string(updatedPostPromote_.id)}});
 
 
       // and send PostStatusChangedEvent
-      LivePostsEvents::PostStatusChangedEvent eventPublish;
-      eventPublish.postId = updatedPostStage_.id;
-      eventPublish.status = LivePostsModel::PostStatus::Live;
-      eventPublish.authorUserId = updatedPostStage_.userId;
-      eventPublish.slug = updatedPostStage_.slug;
-      eventPublish.wsId = promotePostInput_.wsId;
+      LivePostsEvents::PostStatusChangedEvent eventStatusChanged;
+      eventStatusChanged.postId = updatedPostPromote_.id;
+      eventStatusChanged.status = LivePostsModel::PostStatus::Live;
+      eventStatusChanged.authorUserId = updatedPostPromote_.userId;
+      eventStatusChanged.slug = updatedPostPromote_.slug;
+      eventStatusChanged.wsId = promotePostInput_.wsId;
 
-      json jsonPublishEvent = eventPublish;
+      json jsonStatusChanged = eventStatusChanged;
       ctx_.redis->publish(
           std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
-          jsonPublishEvent.dump());
+          jsonStatusChanged.dump());
 
       PQclear(res);
       sendSuccess(root.dump());
