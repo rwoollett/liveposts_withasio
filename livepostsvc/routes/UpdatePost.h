@@ -78,7 +78,7 @@ namespace Routes::LivePosts
         "SET \"draftTitle\"=$1, "
         " \"draftContent\"=$2, "
         " \"status\"=$3, "
-        " \"rednerStatus\"=$4, "
+        " \"renderStatus\"=$4, "
         " \"date\"=NOW() "
         "WHERE \"id\"=$5 "
         "RETURNING id, \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
