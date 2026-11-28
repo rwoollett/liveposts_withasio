@@ -45,7 +45,7 @@ namespace Routes::LivePosts
                                        "\"allocated\", \"status\", \"renderStatus\", "
                                        "\"Users\".\"name\" AS \"userName\" "
                                        "FROM \"Posts\" LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\" "
-                                       "WHERE \"status\"=$1 "
+                                       "WHERE \"status\"=$1 and \"renderStatus\"=$2 "
                                        ";";
   };
 }

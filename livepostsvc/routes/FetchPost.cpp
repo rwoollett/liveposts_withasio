@@ -33,6 +33,7 @@ namespace Routes::LivePosts
     // Build paramStrings_ (owned)
     paramStrings_.clear();
     paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::Live));
+    paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::RenderStatus::Completed));
 
     // Build paramValues_
     paramValues_.clear();
