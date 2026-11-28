@@ -78,10 +78,11 @@ namespace Routes::LivePosts
         "SET \"draftTitle\"=$1, "
         " \"draftContent\"=$2, "
         " \"status\"=$3, "
+        " \"rednerStatus\"=$4, "
         " \"date\"=NOW() "
-        "WHERE \"id\"=$4 "
+        "WHERE \"id\"=$5 "
         "RETURNING id, \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
-        "\"allocated\", \"status\", "
+        "\"allocated\", \"status\", \"renderStatus\", "
         "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
         ";";
   };

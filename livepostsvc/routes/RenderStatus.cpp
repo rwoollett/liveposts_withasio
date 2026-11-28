@@ -1,4 +1,4 @@
-#include "PrerenderPost.h"
+#include "RenderStatus.h"
 
 #include "apiserver/Session.h"
 #include "apiserver/PQClient.h"
@@ -17,12 +17,12 @@ using Timestamp::parseDate;
 namespace Routes::LivePosts
 {
 
-  PrerenderPostOp::PrerenderPostOp(RequestContext ctx)
+  RenderStatusOp::RenderStatusOp(RequestContext ctx)
       : ctx_(std::move(ctx)), send_(std::move(ctx_.send))
   {
   }
 
-  void PrerenderPostOp::start()
+  void RenderStatusOp::start()
   {
     if (!parseReq())
       return; // parseReq already sent error
@@ -30,7 +30,7 @@ namespace Routes::LivePosts
     doWork();
   }
 
-  bool PrerenderPostOp::parseReq()
+  bool RenderStatusOp::parseReq()
   {
     t0_ = std::chrono::system_clock::now();
 
@@ -38,13 +38,14 @@ namespace Routes::LivePosts
 
     if (params_["postId"].empty())
     {
-      sendError("Invalid prerender post");
+      sendError("Invalid render status data");
       return false;
     }
 
     // Build paramStrings_ (owned)
     paramStrings_.clear();
     paramStrings_.push_back(params_["postId"]);
+    paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::RenderStatus::Completed));
 
     // Build paramValues_
     paramValues_.clear();
@@ -58,7 +59,7 @@ namespace Routes::LivePosts
     return true;
   }
 
-  void PrerenderPostOp::doWork()
+  void RenderStatusOp::doWork()
   {
     auto self = shared_from_this();
     ctx_.db->asyncExecParams(
@@ -71,11 +72,11 @@ namespace Routes::LivePosts
         { self->onWorkResult(res); });
   }
 
-  void PrerenderPostOp::onWorkResult(PGresult *res)
+  void RenderStatusOp::onWorkResult(PGresult *res)
   {
     if (!res)
     {
-      sendError("Prerender post failed: " + ctx_.db->connErrorMessage());
+      sendError("Render status for post failed: " + ctx_.db->connErrorMessage());
       return;
     }
 
@@ -86,7 +87,7 @@ namespace Routes::LivePosts
     {
       std::string err = PQresultErrorMessage(res);
       PQclear(res);
-      sendError("Prerender post failed: " + err);
+      sendError("Render status for post failed: " + err);
       return;
     }
 
@@ -95,7 +96,7 @@ namespace Routes::LivePosts
     {
       std::string err = PQresultErrorMessage(res);
       PQclear(res);
-      sendError("Prerender post failed: " + err);
+      sendError("Render status for post failed: " + err);
       return;
     }
 
@@ -108,37 +109,25 @@ namespace Routes::LivePosts
 
       if (rows == 0)
       {
-        root["prerenderPost"] = "No rows returned from query";
+        root["renderStatus"] = "No rows returned from query";
         PQclear(res);
-        sendError("Prerender post failed: No post found.");
+        sendError("Render status for post failed: No post found.");
         return;
       }
 
       auto t1 = std::chrono::system_clock::now();
       auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0_);
-      mt_logging::logger().log({fmt::format(" PrerenderPostOp::onWorkResult async sql duration :{} ms.  Post {}",
+      mt_logging::logger().log({fmt::format(" RenderStatusOp::onWorkResult async sql duration :{} ms.  Post {}",
                                             milliseconds.count(),
                                             params_["postId"]),
                                 mt_logging::LogLevel::Info, true});
 
-      prerenderPost_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
-      root["prerenderPost"] = prerenderPost_;
-
-      // Status is Live:
-      // 1) do prerender and send broadcast stagepostevent
-      json jsonPost = prerenderPost_;
-      Prerender::prerenderPost(jsonPost.dump());
-
-      auto tA1 = std::chrono::system_clock::now();
-      auto millisecondsA = std::chrono::duration_cast<std::chrono::milliseconds>(tA1 - t1);
-      mt_logging::logger().log({fmt::format(" PrerenderPostOp::onWorkResult prerender duration :{} ms.  Post {}",
-                                            millisecondsA.count(),
-                                            params_["postId"]),
-                                mt_logging::LogLevel::Info, true});
+      renderStatusPost_ = LivePostsModel::PG::Posts::fromPGRes(res, cols, 0);
+      root["renderStatus"] = renderStatusPost_;
 
       LivePostsEvents::PostStageEvent eventStage;
-      eventStage.id = prerenderPost_.id;
-      eventStage.slug = prerenderPost_.slug;
+      eventStage.id = renderStatusPost_.id;
+      eventStage.slug = renderStatusPost_.slug;
       json jsonEvent = eventStage;
       ctx_.redis->publish(
           std::getenv("REDIS_GATEWAY_CHANNEL") == nullptr ? "ws_events" : std::getenv("REDIS_GATEWAY_CHANNEL"),
@@ -146,7 +135,7 @@ namespace Routes::LivePosts
 
       auto tB1 = std::chrono::system_clock::now();
       auto millisecondsB = std::chrono::duration_cast<std::chrono::milliseconds>(tB1 - t0_);
-      mt_logging::logger().log({fmt::format(" PrerenderPostOp::onWorkResult total duration :{} ms.  Post {}",
+      mt_logging::logger().log({fmt::format(" RenderStatusOp::onWorkResult total duration :{} ms.  Post {}",
                                             millisecondsB.count(),
                                             params_["postId"]),
                                 mt_logging::LogLevel::Info, true});
@@ -166,7 +155,7 @@ namespace Routes::LivePosts
   }
 
   // --- Local helpers (no DbOpBase) ---
-  void PrerenderPostOp::sendError(const std::string &msg)
+  void RenderStatusOp::sendError(const std::string &msg)
   {
     auto session = ctx_.session;
     auto &strand = session->strand();
@@ -182,7 +171,7 @@ namespace Routes::LivePosts
         });
   }
 
-  void PrerenderPostOp::sendSuccess(const std::string &body)
+  void RenderStatusOp::sendSuccess(const std::string &body)
   {
     auto session = ctx_.session;
     auto &strand = session->strand();

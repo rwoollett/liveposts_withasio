@@ -76,7 +76,7 @@ namespace Routes::LivePosts
         "INSERT INTO \"Posts\" "
         "(\"title\", \"content\", \"userId\", \"date\", \"status\") VALUES ($1, $2, $3, NOW(), $4) "
         "RETURNING id, \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
-        "\"allocated\", \"status\", "
+        "\"allocated\", \"status\", \"renderStatus\", "
         "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
         ";";
   };

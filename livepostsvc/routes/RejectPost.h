@@ -47,7 +47,7 @@ namespace Routes::LivePosts
         "SET \"status\"=$1 "
         "WHERE \"id\"=$2 "
         "RETURNING id, \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
-        "\"allocated\", \"status\", "
+        "\"allocated\", \"status\", \"renderStatus\", "
         "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
         ";";
   };

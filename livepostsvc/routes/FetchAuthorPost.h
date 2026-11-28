@@ -42,7 +42,7 @@ namespace Routes::LivePosts
 
     static constexpr const char *sql = "SELECT "
                                        "\"Posts\".\"id\", \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
-                                       "\"allocated\", \"status\", "
+                                       "\"allocated\", \"status\", \"renderStatus\", "
                                        "\"Users\".\"name\" AS \"userName\" "
                                        "FROM \"Posts\" LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\" "
                                        "WHERE \"Users\".\"authUserId\"=$1 "

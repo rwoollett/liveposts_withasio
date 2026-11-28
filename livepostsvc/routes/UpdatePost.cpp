@@ -78,6 +78,7 @@ namespace Routes::LivePosts
     paramStrings_.push_back(postUpdate_.title);
     paramStrings_.push_back(postUpdate_.content);
     paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::PostStatus::PendingModeration));
+    paramStrings_.push_back(LivePostsModel::to_string(LivePostsModel::RenderStatus::Pending));
     paramStrings_.push_back(params_["postId"]);
 
     // Build paramValues_

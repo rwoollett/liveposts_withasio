@@ -14,10 +14,10 @@ using Rest::Response::success_request;
 namespace Routes::LivePosts
 {
 
-  class PrerenderPostOp : public std::enable_shared_from_this<PrerenderPostOp>
+  class RenderStatusOp : public std::enable_shared_from_this<RenderStatusOp>
   {
   public:
-    PrerenderPostOp(Rest::RequestContext ctx);
+    RenderStatusOp(Rest::RequestContext ctx);
 
     void start();
 
@@ -33,7 +33,7 @@ namespace Routes::LivePosts
     std::chrono::_V2::system_clock::time_point t0_;
 
     Rest::Parameters params_;
-    LivePostsModel::Post prerenderPost_;
+    LivePostsModel::Post renderStatusPost_;
 
     RequestContext ctx_;
     Rest::AnySend send_;
@@ -43,12 +43,12 @@ namespace Routes::LivePosts
     std::vector<int> paramLengths_;
     std::vector<int> paramFormats_;
 
-    static constexpr const char *sql = "SELECT "
-                                       "\"Posts\".\"id\", \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
-                                       "\"allocated\", \"status\", "
-                                       "\"Users\".\"name\" AS \"userName\" "
-                                       "FROM \"Posts\" LEFT JOIN \"Users\" ON \"Posts\".\"userId\" = \"Users\".\"id\" "
-                                       "WHERE \"Posts\".\"id\"=$1 "
-                                       ";";
+    static constexpr const char *sql =
+        "UPDATE \"Posts\" "
+        "SET \"renderStatus\"=$2 WHERE \"id\"=$1 "
+        "RETURNING id, \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
+        "\"allocated\", \"status\", \"renderStatus\", "
+        "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
+        ";";
   };
 }

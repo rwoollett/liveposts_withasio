@@ -8,12 +8,13 @@
 #include "FetchAuthorPost.h"
 #include "FetchPostById.h"
 #include "PromotePost.h"
-#include "PrerenderPost.h"
+#include "RenderStatus.h"
 #include "RouteCommon.h"
 #include "StagePost.h"
 #include "RejectPost.h"
 #include "UpdatePost.h"
 #include <boost/asio/dispatch.hpp>
+#include "../prerender/Prerender.h"
 
 using Rest::RequestContext;
 namespace net = boost::asio; // from <boost/asio.hpp>
@@ -77,9 +78,9 @@ namespace Routes
       op->start();
     }
 
-    inline void prerenderPost(RequestContext ctx)
+    inline void renderStatusCompletedPost(RequestContext ctx)
     {
-      auto op = std::make_shared<PrerenderPostOp>(std::move(ctx));
+      auto op = std::make_shared<RenderStatusOp>(std::move(ctx));
       op->start();
     }
 
@@ -139,6 +140,86 @@ namespace Routes
         return;
       }
     };
+
+    inline void prerender(RequestContext ctx)
+    {
+      auto &strand = ctx.session->strand(); // <-- bind reference ONCE
+
+      LivePostsModel::Post post;
+      try
+      {
+        post = json::parse(ctx.req.body());
+      }
+      catch (...)
+      {
+        net::dispatch(strand,
+                      [ctx = std::move(ctx)]() mutable
+                      {
+                        ctx.send(Rest::Response::bad_request(ctx.req, "Invalid JSON"));
+                      });
+        return;
+      }
+
+      if (!LivePostsModel::Validate::Posts(post))
+      {
+        net::dispatch(strand,
+                      [ctx = std::move(ctx)]() mutable
+                      {
+                        ctx.send(Rest::Response::bad_request(ctx.req, "Invalid prerender data"));
+                      });
+        return;
+      }
+
+      try
+      {
+        std::string result;
+        json root;
+
+        auto t1 = std::chrono::system_clock::now();
+        root["prerenderPost"] = post;
+
+        json jsonPost = post;
+        Prerender::prerenderPost(jsonPost.dump());
+
+        auto tA1 = std::chrono::system_clock::now();
+        auto millisecondsA = std::chrono::duration_cast<std::chrono::milliseconds>(tA1 - t1);
+        mt_logging::logger().log({fmt::format(" Route::LivePosts::prerender duration :{} ms.  Post {} {}",
+                                              millisecondsA.count(),
+                                              post.id, post.slug),
+                                  mt_logging::LogLevel::Info, true});
+
+        result.assign(root.dump());
+
+        net::dispatch(strand,
+                      [ctx = std::move(ctx), msg = std::move(result)]() mutable
+                      {
+                        ctx.send(Rest::Response::success_request(ctx.req, msg));
+                      });
+        return;
+      }
+      catch (const std::exception &e)
+      {
+        mt_logging::logger().log(
+            {e.what(),
+             mt_logging::LogLevel::Debug,
+             true});
+        net::dispatch(strand,
+                      [ctx = std::move(ctx), msg = std::move(e.what())]() mutable
+                      {
+                        ctx.send(Rest::Response::server_error(ctx.req, "Prerender post error"));
+                      });
+        return;
+      }
+      catch (const std::string &e)
+      {
+        net::dispatch(strand,
+                      [ctx = std::move(ctx), msg = std::move(e)]() mutable
+                      {
+                        ctx.send(Rest::Response::server_error(ctx.req, msg));
+                      });
+        return;
+      }
+    }
 
     inline void moderate(RequestContext ctx)
     {

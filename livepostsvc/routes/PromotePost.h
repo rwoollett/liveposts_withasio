@@ -52,7 +52,7 @@ namespace Routes::LivePosts
         "\"slug\"=$2 "
         "WHERE \"id\"=$3 "
         "RETURNING id, \"title\", \"slug\", \"content\", \"draftTitle\", \"draftContent\", \"userId\", \"date\", \"thumbsUp\", \"hooray\", \"heart\", \"rocket\", \"eyes\", "
-        "\"allocated\", \"status\", "
+        "\"allocated\", \"status\", \"renderStatus\", "
         "(SELECT \"name\" FROM \"Users\" WHERE \"Users\".\"id\" = \"Posts\".\"userId\") AS \"userName\""
         ";";
   };
